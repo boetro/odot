@@ -1,0 +1,67 @@
+definitions:
+  handlers.HealthStatus:
+    properties:
+      dependencies:
+        additionalProperties:
+          type: string
+        type: object
+      environment:
+        type: string
+      go_version:
+        type: string
+      memory:
+        $ref: '#/definitions/handlers.MemStats'
+      status:
+        type: string
+      timestamp:
+        type: string
+      uptime:
+        type: string
+      version:
+        type: string
+    type: object
+  handlers.MemStats:
+    properties:
+      alloc:
+        description: Bytes allocated and not yet freed
+        type: integer
+      num_gc:
+        description: Number of completed GC cycles
+        type: integer
+      sys:
+        description: Bytes obtained from system
+        type: integer
+      total_alloc:
+        description: Bytes allocated (even if freed)
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /health:
+    get:
+      description: Check the health of the application and its dependencies
+      parameters:
+      - description: Return a simplified health status
+        in: query
+        name: simple
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Simple status when simple=true and healthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Simple status when simple=true and unhealthy
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get application health status
+      tags:
+      - health
+swagger: "2.0"

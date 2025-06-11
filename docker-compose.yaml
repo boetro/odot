@@ -1,0 +1,69 @@
+version: "3.8"
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:14-alpine
+    container_name: lf-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - lf-dashboard-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  migrations:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.migrations
+    container_name: lf-migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    volumes:
+      - ./sql/migrations:/app/migrations
+    networks:
+      - lf-dashboard-network
+    restart: on-failure
+
+  # API Server
+  api:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.dev
+    container_name: launchflow-dashboard-api
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - PORT=8080
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+    networks:
+      - lf-dashboard-network
+    restart: on-failure
+
+volumes:
+  postgres_data:
+
+networks:
+  lf-dashboard-network:
+    driver: bridge

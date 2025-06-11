@@ -1,0 +1,27 @@
+FROM golang:1.24-alpine
+
+WORKDIR /app
+
+# Install Node.js and npm
+RUN apk add --no-cache nodejs npm
+
+# Install air for hot reloading
+RUN go install github.com/air-verse/air@latest
+
+# Install dependencies for building
+RUN apk add --no-cache gcc musl-dev
+
+# Copy go.mod and go.sum first to leverage Docker cache
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy the rest of the application
+COPY . .
+
+# Install UI dependencies and build
+WORKDIR /app/ui
+RUN npm install --force
+WORKDIR /app
+
+# Run the application with hot reloading
+CMD ["air", "-c", ".air.toml"]
