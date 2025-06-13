@@ -4,7 +4,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:14-alpine
-    container_name: lf-postgres
+    container_name: odot-postgres-dev
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -15,7 +15,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
-      - lf-dashboard-network
+      - odot-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -27,7 +27,7 @@ services:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.migrations
-    container_name: lf-migrations
+    container_name: odot-migrations-dev
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,15 +36,15 @@ services:
     volumes:
       - ./sql/migrations:/app/migrations
     networks:
-      - lf-dashboard-network
+      - odot-network
     restart: on-failure
 
-  # API Server
+  # API Server (Go backend only)
   api:
     build:
       context: .
       dockerfile: ./docker/Dockerfile.dev
-    container_name: launchflow-dashboard-api
+    container_name: odot-api-dev
     depends_on:
       migrations:
         condition: service_completed_successfully
@@ -58,12 +58,30 @@ services:
     volumes:
       - .:/app
     networks:
-      - lf-dashboard-network
+      - odot-network
     restart: on-failure
+
+  # Frontend Dev Server (React/Vite)
+  frontend:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.frontend
+    container_name: odot-frontend-dev
+    environment:
+      - NODE_ENV=development
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./ui:/app/ui
+      - /app/ui/node_modules # Preserve node_modules in container
+    networks:
+      - odot-network
+    restart: on-failure
+    command: ["sh", "-c", "cd ui && bun install && bun run dev --host 0.0.0.0"]
 
 volumes:
   postgres_data:
 
 networks:
-  lf-dashboard-network:
+  odot-network:
     driver: bridge

@@ -12,28 +12,19 @@ exclude_dir = [
     "tmp",
     "vendor",
     "testdata",
-    "ui/node_modules",
-    "ui/dist",
+    "ui",
 ]
 exclude_file = []
 exclude_regex = ["_test.go"]
 exclude_unchanged = false
 follow_symlink = false
 full_bin = ""
-include_dir = ["ui/src", "ui/public"]
+include_dir = []
 include_ext = [
     "go",
     "tpl",
     "tmpl",
     "html",
-    "js",
-    "jsx",
-    "ts",
-    "tsx",
-    "css",
-    "scss",
-    "sass",
-    "vue",
 ]
 include_file = []
 kill_delay = "0s"
@@ -41,7 +32,7 @@ log = "build-errors.log"
 poll = false
 poll_interval = 0
 post_cmd = []
-pre_cmd = ["cd ui && npm run build"]
+pre_cmd = []
 rerun = false
 rerun_delay = 500
 send_interrupt = false

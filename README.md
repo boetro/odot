@@ -64,8 +64,8 @@ odot/
    - React development server accessible through the API
 
 3. **Access the application**
-   - Frontend: http://localhost:8080
-   - API: http://localhost:8080/api/v1
+   - Frontend: http://localhost:5173
+   - API: http://localhost:8080
    - Swagger Docs: http://localhost:8080/swagger/index.html
    - Health Check: http://localhost:8080/health
 
@@ -111,11 +111,17 @@ odot/
 
 ## 🛠️ Development
 
+The development environment uses **separate frontend and backend servers** for optimal developer experience:
+
+- **Frontend**: React + Vite dev server on `http://localhost:5173`
+- **Backend**: Go API server on `http://localhost:8080`
+- **Database**: PostgreSQL on `localhost:5432`
+
 ### Available Make Commands
 
 - `make dev` - Start full development environment with Docker Compose
 - `make build` - Build the Go application
-- `make test` - Run Go tests
+- `make test` - Run all tests
 - `make clean` - Clean up containers and build artifacts
 - `make db` - Connect to the PostgreSQL database
 - `make logs` - View all container logs

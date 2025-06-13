@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/gin-gonic/contrib/static"
@@ -15,7 +16,14 @@ import (
 var staticFS embed.FS
 
 // AddRoutes serves the static file system for the UI React App.
+// In development, the frontend is served by Vite dev server on port 3000.
+// In production, static files are served from the embedded filesystem.
 func AddRoutes(router gin.IRouter) {
+	// Skip serving static files in development - let Vite handle it
+	if os.Getenv("ENVIRONMENT") == "development" {
+		return
+	}
+	
 	embeddedDistFolder := newStaticFileSystem()
 	router.Use(static.Serve("/", embeddedDistFolder))
 }

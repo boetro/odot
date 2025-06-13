@@ -1,0 +1,21 @@
+FROM node:24-bookworm
+
+WORKDIR /app
+
+# Install bun
+RUN npm install -g bun
+
+# Copy package files
+COPY ui/package.json ui/bun.lock* ./ui/
+
+# Install dependencies
+RUN cd ui && bun install
+
+# Copy the rest of the UI code
+COPY ui/ ./ui/
+
+# Expose the development server port
+EXPOSE 3000
+
+# Start the development server
+CMD ["sh", "-c", "cd ui && bun run dev --host 0.0.0.0"]

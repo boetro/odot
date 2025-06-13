@@ -2,9 +2,8 @@
 
 .PHONY: dev build test clean
 
-# Development server with hot reloading
 dev:
-	docker-compose up
+	./dev.sh
 
 # Build the application
 build:
