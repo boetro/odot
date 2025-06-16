@@ -20,7 +20,7 @@ clean:
 
 # Connect to database
 db:
-	docker exec -it lf-postgres psql -U postgres -d postgres
+	docker exec -it odot-postgres-dev psql -U postgres -d postgres
 
 # View logs
 logs:

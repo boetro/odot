@@ -4,6 +4,76 @@
 
 package db
 
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type Comment struct {
+	CommentID int32              `json:"commentId"`
+	TodoID    int32              `json:"todoId"`
+	UserID    int32              `json:"userId"`
+	Content   string             `json:"content"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt pgtype.Timestamptz `json:"updatedAt"`
+}
+
+type Project struct {
+	ProjectID       int32              `json:"projectId"`
+	UserID          int32              `json:"userId"`
+	ParentProjectID pgtype.Int4        `json:"parentProjectId"`
+	Name            string             `json:"name"`
+	Description     pgtype.Text        `json:"description"`
+	Color           pgtype.Text        `json:"color"`
+	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt       pgtype.Timestamptz `json:"updatedAt"`
+}
+
+type RefreshToken struct {
+	TokenID    int32              `json:"tokenId"`
+	UserID     int32              `json:"userId"`
+	TokenHash  string             `json:"tokenHash"`
+	ExpiresAt  pgtype.Timestamptz `json:"expiresAt"`
+	CreatedAt  pgtype.Timestamptz `json:"createdAt"`
+	LastUsedAt pgtype.Timestamptz `json:"lastUsedAt"`
+	IsRevoked  pgtype.Bool        `json:"isRevoked"`
+}
+
+type Tag struct {
+	TagID     int32              `json:"tagId"`
+	UserID    int32              `json:"userId"`
+	Name      string             `json:"name"`
+	Color     pgtype.Text        `json:"color"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+}
+
+type Todo struct {
+	TodoID        int32              `json:"todoId"`
+	UserID        int32              `json:"userId"`
+	ProjectID     pgtype.Int4        `json:"projectId"`
+	ParentTodoID  pgtype.Int4        `json:"parentTodoId"`
+	Title         string             `json:"title"`
+	Description   pgtype.Text        `json:"description"`
+	IsCompleted   pgtype.Bool        `json:"isCompleted"`
+	DueDate       pgtype.Timestamptz `json:"dueDate"`
+	WorkStartTime pgtype.Timestamptz `json:"workStartTime"`
+	WorkEndTime   pgtype.Timestamptz `json:"workEndTime"`
+	Priority      pgtype.Int4        `json:"priority"`
+	CreatedAt     pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt     pgtype.Timestamptz `json:"updatedAt"`
+	CompletedAt   pgtype.Timestamptz `json:"completedAt"`
+}
+
+type TodoTag struct {
+	TodoID int32 `json:"todoId"`
+	TagID  int32 `json:"tagId"`
+}
+
 type User struct {
-	ID string `json:"id"`
+	UserID            int32              `json:"userId"`
+	Email             string             `json:"email"`
+	PasswordHash      pgtype.Text        `json:"passwordHash"`
+	GoogleID          pgtype.Text        `json:"googleId"`
+	ProfilePictureUrl pgtype.Text        `json:"profilePictureUrl"`
+	CreatedAt         pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt         pgtype.Timestamptz `json:"updatedAt"`
 }

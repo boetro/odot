@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-//go:embed dist
+//go:embed all:dist
 var staticFS embed.FS
 
 // AddRoutes serves the static file system for the UI React App.
@@ -23,7 +23,7 @@ func AddRoutes(router gin.IRouter) {
 	if os.Getenv("ENVIRONMENT") == "development" {
 		return
 	}
-	
+
 	embeddedDistFolder := newStaticFileSystem()
 	router.Use(static.Serve("/", embeddedDistFolder))
 }

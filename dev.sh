@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Development startup script for ODOT
+# Development startup script for odot
 # This script starts the development environment with separate frontend and backend servers
 
 set -e
 
-echo "🚀 Starting ODOT Development Environment"
+echo "🚀 Starting odot Development Environment"
 echo "========================================="
 
 # Check if docker-compose is available

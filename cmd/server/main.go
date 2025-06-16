@@ -21,6 +21,7 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
 	// Initialize configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -30,12 +31,14 @@ func main() {
 	// Initialize logger
 	logger := logger.New(cfg.LogLevel)
 
-	// Initialize database connection
-	db, err := db.Connect(cfg.DatabaseURL)
+	// Initialize database connection pool
+	pool, err := db.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
 		logger.Fatal("Failed to connect to database", "error", err)
 	}
-	defer db.Close()
+	defer pool.Close()
+
+	queries := db.New(pool)
 
 	// Set up Gin router
 	router := gin.New()
@@ -45,7 +48,7 @@ func main() {
 
 	// Register all routes
 
-	api.RegisterRoutes(router, db, logger)
+	api.RegisterRoutes(router, pool, queries, cfg, logger)
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	// Create HTTP server

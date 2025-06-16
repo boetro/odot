@@ -8,10 +8,14 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Port        string
-	LogLevel    string
-	DatabaseURL string
-	Environment string
+	Port               string
+	LogLevel           string
+	DatabaseURL        string
+	Environment        string
+	JWTSecret          string
+	GoogleClientID     string
+	GoogleClientSecret string
+	GoogleRedirectURI  string
 }
 
 // Load reads configuration from environment variables
@@ -36,10 +40,34 @@ func Load() (*Config, error) {
 		logLevel = "info" // Default log level
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET environment variable is required")
+	}
+
+	googleClientID := os.Getenv("GOOGLE_CLIENT_ID")
+	if googleClientID == "" {
+		return nil, fmt.Errorf("GOOGLE_CLIENT_ID environment variable is required")
+	}
+
+	googleClientSecret := os.Getenv("GOOGLE_CLIENT_SECRET")
+	if googleClientSecret == "" {
+		return nil, fmt.Errorf("GOOGLE_CLIENT_SECRET environment variable is required")
+	}
+
+	googleRedirectURI := os.Getenv("GOOGLE_REDIRECT_URI")
+	if googleRedirectURI == "" {
+		return nil, fmt.Errorf("GOOGLE_REDIRECT_URI environment variable is required")
+	}
+
 	return &Config{
-		Port:        port,
-		LogLevel:    logLevel,
-		DatabaseURL: dbURL,
-		Environment: env,
+		Port:               port,
+		LogLevel:           logLevel,
+		DatabaseURL:        dbURL,
+		Environment:        env,
+		JWTSecret:          jwtSecret,
+		GoogleClientID:     googleClientID,
+		GoogleClientSecret: googleClientSecret,
+		GoogleRedirectURI:  googleRedirectURI,
 	}, nil
 }

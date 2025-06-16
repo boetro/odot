@@ -53,6 +53,8 @@ services:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
       - ENVIRONMENT=development
       - LOG_LEVEL=debug
+    env_file:
+      - .env
     ports:
       - "8080:8080"
     volumes:
@@ -69,6 +71,7 @@ services:
     container_name: odot-frontend-dev
     environment:
       - NODE_ENV=development
+      - VITE_API_URL=http://api:8080
     ports:
       - "5173:5173"
     volumes:

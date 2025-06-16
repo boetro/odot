@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // HealthStatus represents the application health information
@@ -50,7 +51,7 @@ var Environment = "development"
 // @Failure 503 {object} HealthStatus "Status is degraded"
 // @Failure 503 {object} map[string]string "Simple status when simple=true and unhealthy"
 // @Router /health [get]
-func HealthCheck(db *sql.DB) gin.HandlerFunc {
+func HealthCheck(db *pgxpool.Pool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Only collect detailed stats for non-simple requests
 		simple := c.Query("simple") == "true"
@@ -116,7 +117,7 @@ func HealthCheck(db *sql.DB) gin.HandlerFunc {
 	}
 }
 
-func checkDBConnection(db *sql.DB) error {
+func checkDBConnection(db *pgxpool.Pool) error {
 	if db == nil {
 		return nil // Skip check if DB is not provided
 	}
@@ -127,7 +128,7 @@ func checkDBConnection(db *sql.DB) error {
 
 	// Perform a simple query to verify connectivity
 	var result int
-	err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result)
+	err := db.QueryRow(ctx, "SELECT 1").Scan(&result)
 	if err != nil {
 		return err
 	}

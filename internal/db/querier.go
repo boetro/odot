@@ -6,10 +6,62 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
-	GetUser(ctx context.Context, id string) (string, error)
+	CleanupExpiredRefreshTokens(ctx context.Context) error
+	CompleteTodo(ctx context.Context, todoID int32) (Todo, error)
+	CreateComment(ctx context.Context, arg CreateCommentParams) (Comment, error)
+	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
+	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
+	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
+	CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error)
+	CreateTodoTag(ctx context.Context, arg CreateTodoTagParams) error
+	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
+	DeleteAllTagTodos(ctx context.Context, tagID int32) error
+	DeleteAllTodoTags(ctx context.Context, todoID int32) error
+	DeleteComment(ctx context.Context, commentID int32) error
+	DeleteProject(ctx context.Context, projectID int32) error
+	DeleteTag(ctx context.Context, tagID int32) error
+	DeleteTodo(ctx context.Context, todoID int32) error
+	DeleteTodoTag(ctx context.Context, arg DeleteTodoTagParams) error
+	DeleteUser(ctx context.Context, userID int32) error
+	GetComment(ctx context.Context, commentID int32) (Comment, error)
+	GetProject(ctx context.Context, projectID int32) (Project, error)
+	GetRefreshToken(ctx context.Context, tokenHash string) (RefreshToken, error)
+	GetTag(ctx context.Context, tagID int32) (Tag, error)
+	GetTagByName(ctx context.Context, arg GetTagByNameParams) (Tag, error)
+	GetTagTodos(ctx context.Context, tagID int32) ([]TodoTag, error)
+	GetTodo(ctx context.Context, todoID int32) (Todo, error)
+	GetTodoTags(ctx context.Context, todoID int32) ([]TodoTag, error)
+	GetUser(ctx context.Context, userID int32) (User, error)
+	GetUserByEmail(ctx context.Context, email string) (User, error)
+	GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error)
+	GetUserRefreshTokens(ctx context.Context, userID int32) ([]RefreshToken, error)
+	ListComments(ctx context.Context, todoID int32) ([]Comment, error)
+	ListCommentsByUser(ctx context.Context, userID int32) ([]Comment, error)
+	ListCompletedTodos(ctx context.Context, userID int32) ([]Todo, error)
+	ListPendingTodos(ctx context.Context, userID int32) ([]Todo, error)
+	ListProjects(ctx context.Context, userID int32) ([]Project, error)
+	ListProjectsByParent(ctx context.Context, arg ListProjectsByParentParams) ([]Project, error)
+	ListTags(ctx context.Context, userID int32) ([]Tag, error)
+	ListTodoTagsByTodo(ctx context.Context, todoID int32) ([]Tag, error)
+	ListTodos(ctx context.Context, userID int32) ([]Todo, error)
+	ListTodosByParent(ctx context.Context, arg ListTodosByParentParams) ([]Todo, error)
+	ListTodosByProject(ctx context.Context, arg ListTodosByProjectParams) ([]Todo, error)
+	ListTodosByTag(ctx context.Context, tagID int32) ([]Todo, error)
+	ListUsers(ctx context.Context) ([]User, error)
+	RevokeAllUserRefreshTokens(ctx context.Context, userID int32) error
+	RevokeRefreshToken(ctx context.Context, tokenHash string) error
+	UncompleteTodo(ctx context.Context, todoID int32) (Todo, error)
+	UpdateComment(ctx context.Context, arg UpdateCommentParams) (Comment, error)
+	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
+	UpdateRefreshTokenLastUsed(ctx context.Context, tokenHash string) error
+	UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error)
+	UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error)
+	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 
 var _ Querier = (*Queries)(nil)
