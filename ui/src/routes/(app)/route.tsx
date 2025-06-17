@@ -1,4 +1,6 @@
 import Layout from "@/components/layout";
+import { projectQueries } from "@/lib/queries/projects";
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/(app)")({
@@ -13,6 +15,9 @@ export const Route = createFileRoute("/(app)")({
         },
       });
     }
+  },
+  loader: async ({ context }) => {
+    await context.queryClient.prefetchQuery(projectQueries.listProjects());
   },
 });
 

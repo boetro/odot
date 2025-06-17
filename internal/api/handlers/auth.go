@@ -175,19 +175,19 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	// Set access token cookie (short-lived)
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
-		"auth_token",           // name
-		tokenPair.AccessToken,  // value
-		15*60,                  // maxAge (15 minutes)
-		"/",                    // path
-		"",                     // domain
-		true,                   // secure (HTTPS only)
-		true,                   // httpOnly (JS cannot access)
+		"auth_token",          // name
+		tokenPair.AccessToken, // value
+		15*60,                 // maxAge (15 minutes)
+		"/",                   // path
+		"",                    // domain
+		true,                  // secure (HTTPS only)
+		true,                  // httpOnly (JS cannot access)
 	)
 
 	// Set refresh token cookie (long-lived, more secure)
 	c.SetCookie(
-		"refresh_token",         // name
-		tokenPair.RefreshToken,  // value
+		"refresh_token",        // name
+		tokenPair.RefreshToken, // value
 		7*24*60*60,             // maxAge (7 days)
 		"/",                    // path
 		"",                     // domain
@@ -203,6 +203,7 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// Try to get refresh token from cookie first, then from body
 	refreshToken, err := c.Cookie("refresh_token")
+
 	if err != nil {
 		// If no cookie, try to get from request body
 		var req RefreshTokenRequest
@@ -279,18 +280,18 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// Set new cookies
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
-		"auth_token",           // name
-		tokenPair.AccessToken,  // value
-		15*60,                  // maxAge (15 minutes)
-		"/",                    // path
-		"",                     // domain
-		true,                   // secure (HTTPS only)
-		true,                   // httpOnly (JS cannot access)
+		"auth_token",          // name
+		tokenPair.AccessToken, // value
+		15*60,                 // maxAge (15 minutes)
+		"/",                   // path
+		"",                    // domain
+		true,                  // secure (HTTPS only)
+		true,                  // httpOnly (JS cannot access)
 	)
 
 	c.SetCookie(
-		"refresh_token",         // name
-		tokenPair.RefreshToken,  // value
+		"refresh_token",        // name
+		tokenPair.RefreshToken, // value
 		7*24*60*60,             // maxAge (7 days)
 		"/",                    // path
 		"",                     // domain

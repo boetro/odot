@@ -61,6 +61,12 @@ services:
       - .:/app
     networks:
       - odot-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_interval: 1s
+      retries: 3
     restart: on-failure
 
   # Frontend Dev Server (React/Vite)
@@ -69,6 +75,9 @@ services:
       context: .
       dockerfile: ./docker/Dockerfile.frontend
     container_name: odot-frontend-dev
+    depends_on:
+      api:
+        condition: service_healthy
     environment:
       - NODE_ENV=development
       - VITE_API_URL=http://api:8080

@@ -44,6 +44,11 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 			userHandler := handlers.NewUserHandler(querier, logger)
 			protected.GET("/me", userHandler.GetUser)
 		}
+		{
+			projectHandler := handlers.NewProjectHandler(querier, logger)
+			protected.GET("/projects", projectHandler.ListProjects)
+			protected.POST("/projects", projectHandler.CreateProject)
+		}
 	}
 
 	// 	// Protected routes with JWT auth

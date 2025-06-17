@@ -7,14 +7,17 @@ import "./App.css";
 import { routeTree } from "./routeTree.gen";
 import { AuthProvider } from "./contexts/auth-context";
 import { useAuth } from "./hooks/use-auth";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // Create a new router instance
+const queryClient = new QueryClient();
 const router = createRouter({
   routeTree,
   defaultPreload: "intent",
   scrollRestoration: true,
   context: {
     auth: undefined!, // This will be set after we wrap the app in an AuthProvider
+    queryClient: queryClient,
   },
 });
 
@@ -46,7 +49,9 @@ function InnerApp() {
 function App() {
   return (
     <AuthProvider>
-      <InnerApp />
+      <QueryClientProvider client={queryClient}>
+        <InnerApp />
+      </QueryClientProvider>
     </AuthProvider>
   );
 }
