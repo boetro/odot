@@ -30,19 +30,6 @@ import { NewProjectDialog } from "./new-project-dialog";
 import { projectQueries } from "@/lib/queries/projects";
 import { useQuery } from "@tanstack/react-query";
 
-const mockProjects = [
-  {
-    id: "1",
-    name: "Project 1",
-    color: "#FF5733",
-  },
-  {
-    id: "2",
-    name: "Project 2",
-    color: "#33FF57",
-  },
-];
-
 // Menu items.
 const items = [
   {
