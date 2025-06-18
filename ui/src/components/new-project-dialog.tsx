@@ -7,10 +7,11 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import { useEffect, useRef, useState, forwardRef } from "react";
-import { Box, Circle } from "lucide-react";
+import { Box, Check, Circle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { listProjectsKeys } from "@/lib/queries/keys";
+import type { Project } from "@/lib/types";
 
 const COMMON_COLORS = [
   { name: "Red", hex: "#ef4444" },
@@ -50,9 +51,11 @@ SmallButton.displayName = "SmallButton";
 export function NewProjectDialog({
   open,
   setOpen,
+  projects,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
+  projects: Project[];
 }) {
   const queryClient = useQueryClient();
   const projNameRef = useRef<HTMLInputElement>(null);
@@ -62,6 +65,7 @@ export function NewProjectDialog({
       name: string;
       description: string;
       color?: string;
+      parent_project_id?: number;
     }) => {
       return fetch("/api/projects", {
         method: "POST",
@@ -82,6 +86,9 @@ export function NewProjectDialog({
   });
 
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
+  const [isParentProjectPickerOpen, setIsParentProjectPickerOpen] =
+    useState(false);
+
   const [error, setError] = useState<string | null>(null);
 
   function resetForm() {
@@ -89,6 +96,7 @@ export function NewProjectDialog({
       name: "",
       description: "",
       color: undefined,
+      parentProject: undefined,
     });
     setError(null);
   }
@@ -112,10 +120,12 @@ export function NewProjectDialog({
     name: string;
     description: string;
     color: (typeof COMMON_COLORS)[0] | undefined;
+    parentProject: Project | undefined;
   }>({
     name: "",
     description: "",
     color: undefined,
+    parentProject: undefined,
   });
 
   function createProject() {
@@ -145,8 +155,8 @@ export function NewProjectDialog({
       name: pendingProject.name,
       description: pendingProject.description,
       color: projColor,
+      parent_project_id: pendingProject.parentProject?.id,
     });
-    // TODO: Implement project creation logic
   }
 
   useEffect(() => {
@@ -188,7 +198,7 @@ export function NewProjectDialog({
       }}
     >
       <DialogContent
-        className="sm:max-w-[60%] p-0 pt-4"
+        className="sm:max-w-[60%] p-0 pt-4 overflow-y-auto"
         showCloseButton={false}
         aria-describedby="New Project Dialog"
       >
@@ -242,29 +252,73 @@ export function NewProjectDialog({
                   {pendingProject?.color?.name || "Color"}
                 </SmallButton>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-2">
-                <div className="grid grid-cols-2 gap-1">
-                  {COMMON_COLORS.map((color) => (
-                    <button
-                      key={color.hex}
-                      className="flex items-center gap-2 p-2 text-sm hover:bg-accent rounded-sm"
-                      onClick={() => {
-                        setPendingProject({ ...pendingProject, color });
-                        setIsColorPickerOpen(false);
-                      }}
-                    >
-                      <Circle size={12} fill={color.hex} stroke={color.hex} />
-                      {color.name}
-                    </button>
-                  ))}
-                </div>
+              <PopoverContent
+                className="flex flex-col w-36 p-1 overflow-y-auto max-h-56"
+                align="start"
+              >
+                {COMMON_COLORS.map((color) => (
+                  <button
+                    key={color.hex}
+                    className="flex items-center gap-2 p-2 text-sm hover:bg-accent rounded-sm"
+                    onClick={() => {
+                      setPendingProject({ ...pendingProject, color });
+                      setIsColorPickerOpen(false);
+                    }}
+                  >
+                    <Circle size={12} fill={color.hex} stroke={color.hex} />
+                    {color.name}
+                  </button>
+                ))}
               </PopoverContent>
             </Popover>
-
-            <SmallButton>
-              <Box />
-              Parent Project
-            </SmallButton>
+            <Popover
+              open={isParentProjectPickerOpen}
+              onOpenChange={setIsParentProjectPickerOpen}
+            >
+              <PopoverTrigger asChild>
+                <SmallButton>
+                  <Box
+                    style={{
+                      color: pendingProject.parentProject?.color || "inherit",
+                    }}
+                  />
+                  {pendingProject.parentProject?.name || "Parent Project"}
+                </SmallButton>
+              </PopoverTrigger>
+              <PopoverContent
+                className="flex flex-col w-36 p-1 overflow-y-auto max-h-56"
+                align="start"
+              >
+                {projects.map((project) => (
+                  <button
+                    key={project.id}
+                    className="flex justify-between items-center gap-2 p-2 text-sm hover:bg-accent rounded-sm"
+                    onClick={() => {
+                      if (project.id === pendingProject.parentProject?.id) {
+                        setPendingProject({
+                          ...pendingProject,
+                          parentProject: undefined,
+                        });
+                      } else {
+                        setPendingProject({
+                          ...pendingProject,
+                          parentProject: project,
+                        });
+                      }
+                      setIsParentProjectPickerOpen(false);
+                    }}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Box size={12} style={{ color: project.color }} />
+                      {project.name}
+                    </span>
+                    {project.id === pendingProject.parentProject?.id && (
+                      <Check size={16} />
+                    )}
+                  </button>
+                ))}
+              </PopoverContent>
+            </Popover>
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
@@ -274,7 +328,10 @@ export function NewProjectDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                resetForm();
+                setOpen(false);
+              }}
             >
               Cancel
             </Button>

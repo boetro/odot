@@ -82,6 +82,7 @@ export function NewTodoDialog({
       <DialogContent
         className="sm:max-w-[60%] p-0 pt-4"
         showCloseButton={false}
+        aria-describedby="Create new TODO dialog"
       >
         <DialogHeader className="px-4">
           <DialogTitle>

@@ -26,7 +26,7 @@ type CreateProjectRequest struct {
 	Name            string `json:"name" binding:"required"`
 	Description     string `json:"description"`
 	Color           string `json:"color" binding:"required"`
-	ParentProjectID int    `json:"parent_project_id"`
+	ParentProjectID int32  `json:"parent_project_id"`
 }
 
 type ProjectResponse struct {
@@ -81,6 +81,15 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 
 	var parentProjectID pgtype.Int4
 	if req.ParentProjectID != 0 {
+		parentProject, err := h.querier.GetProject(c, req.ParentProjectID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			return
+		}
+		if parentProject.UserID != userId {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			return
+		}
 		parentProjectID = pgtype.Int4{
 			Int32: int32(req.ParentProjectID),
 			Valid: true,

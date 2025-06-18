@@ -5,9 +5,9 @@ export type User = {
 };
 
 export type Project = {
-  id: string;
+  id: number;
   name: string;
   description: string;
   color: string;
-  parentProjectId: string | null;
+  parent_project_id: number | null;
 };
