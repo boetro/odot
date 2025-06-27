@@ -7,11 +7,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <AppSidebar user={user} />
-      <SidebarInset className="border">
-        <main>
-          {/* <SidebarTrigger /> */}
-          {children}
-        </main>
+      <SidebarInset className="border h-full-w-full overflow-hidden">
+        {/* <SidebarTrigger /> */}
+        {children}
       </SidebarInset>
     </SidebarProvider>
   );

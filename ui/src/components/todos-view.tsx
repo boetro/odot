@@ -104,7 +104,7 @@ function TodoBoard({
   state: LocalStorageState | undefined;
 }) {
   return (
-    <div className="flex flex-row space-x-2 pl-2">
+    <div className="flex flex-row space-x-2 px-2 overflow-auto">
       {groupedTodos?.map((group) => (
         <div key={group.key} className="w-72 border h-full">
           <span>
@@ -468,7 +468,7 @@ export default function TodosView({
   }, [sortedTodos, grouping]);
 
   return (
-    <div className="pt-2 space-y-4 flex-1 flex flex-col">
+    <div className="pt-2 space-y-4 flex flex-col">
       <div className="flex flex-row justify-between">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -729,7 +729,7 @@ export default function TodosView({
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex-1 overflow-auto">
+      <div className="flex overflow-auto">
         {view === "list" && (
           <TodoList
             groupedTodos={groupedTodos}
