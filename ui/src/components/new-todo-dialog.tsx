@@ -1,4 +1,3 @@
-import { Box, Calendar, CircleAlert, Tags } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -7,29 +6,117 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Switch } from "./ui/switch";
+import type { Project } from "@/lib/types";
+import ProjectDropdown from "./project-dropdown";
+import DateDropdown from "./date-dropdown";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { listProjectTodos, listUserTodos } from "@/lib/queries/keys";
 
-function SmallButton({ children }: { children: React.ReactNode }) {
-  return (
-    <Button
-      variant="outline"
-      className="h-6 text-xs rounded-sm gap-1.5 px-3 has-[>svg]:px-2.5 text-muted-foreground"
-    >
-      {children}
-    </Button>
-  );
+function combineDate(date: Date | undefined, timeStr: string | undefined) {
+  if (!date) return undefined;
+
+  if (timeStr) {
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    date.setHours(hours, minutes, 0, 0);
+  }
+
+  return date;
 }
 
 export function NewTodoDialog({
   open,
   setOpen,
+  projects,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
+  projects: Project[];
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const [pendingTodo, setPendingTodo] = useState<{
+    title: string;
+    description: string;
+    project?: Project;
+    priority?: number;
+    assignedDate?: Date;
+    assignedTime?: string;
+    durationMinutes: string;
+  }>({
+    title: "",
+    description: "",
+    durationMinutes: "",
+  });
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: (newTodo: {
+      title: string;
+      description: string;
+      assigned_date?: Date;
+      project_id?: number;
+      duration_minutes?: number;
+      parent_todo_id?: string;
+    }) => {
+      console.log("Sending todo request: ", newTodo);
+      return fetch("/api/todos", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(newTodo),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: listUserTodos,
+      });
+      if (pendingTodo.project) {
+        queryClient.invalidateQueries({
+          queryKey: listProjectTodos(pendingTodo.project.id),
+        });
+      }
+      resetForm();
+      setOpen(false);
+    },
+  });
+
+  function createTodo() {
+    if (!pendingTodo.title) {
+      setError("Title is required");
+      return;
+    }
+    if (pendingTodo.title.length < 3) {
+      setError("Title must be at least 3 characters long");
+      return;
+    }
+    setError(null);
+    mutation.mutate({
+      title: pendingTodo.title,
+      description: pendingTodo.description,
+      duration_minutes: pendingTodo.durationMinutes
+        ? parseInt(pendingTodo.durationMinutes)
+        : undefined,
+      assigned_date: combineDate(
+        pendingTodo.assignedDate,
+        pendingTodo.assignedTime,
+      ),
+      project_id: pendingTodo.project?.id,
+    });
+  }
+
+  function resetForm() {
+    setPendingTodo({
+      title: "",
+      description: "",
+      durationMinutes: "",
+    });
+  }
 
   const handleTextareaResize = () => {
     if (textareaRef.current) {
@@ -78,7 +165,13 @@ export function NewTodoDialog({
   }, [setOpen]);
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        resetForm();
+        setOpen(open);
+      }}
+    >
       <DialogContent
         className="sm:max-w-[60%] p-0 pt-4"
         showCloseButton={false}
@@ -92,6 +185,13 @@ export function NewTodoDialog({
               data-slot="input"
               ref={titleRef}
               className="outline-none w-full"
+              value={pendingTodo.title}
+              onChange={(e) => {
+                setPendingTodo({
+                  ...pendingTodo,
+                  title: e.target.value,
+                });
+              }}
             />
           </DialogTitle>
         </DialogHeader>
@@ -104,25 +204,58 @@ export function NewTodoDialog({
             rows={3}
             onInput={handleTextareaResize}
             style={{ minHeight: "3rem" }}
+            value={pendingTodo.description}
+            onChange={(e) => {
+              setPendingTodo({
+                ...pendingTodo,
+                description: e.target.value,
+              });
+            }}
           />
           <div className="flex flex-row space-x-2">
-            <SmallButton>
-              <Box />
-              Project
-            </SmallButton>
-            <SmallButton>
-              <Calendar />
-              Date
-            </SmallButton>
-            <SmallButton>
+            <ProjectDropdown
+              projects={projects}
+              selectedProject={pendingTodo.project}
+              setSelectedProject={(proj) => {
+                setPendingTodo({
+                  ...pendingTodo,
+                  project: proj,
+                });
+              }}
+            />
+            <DateDropdown
+              selectedDate={pendingTodo.assignedDate}
+              setSelectedDate={(date) => {
+                setPendingTodo({
+                  ...pendingTodo,
+                  assignedDate: date,
+                });
+              }}
+              selectedTime={pendingTodo.assignedTime}
+              setSelectedTime={(time) => {
+                setPendingTodo({
+                  ...pendingTodo,
+                  assignedTime: time,
+                });
+              }}
+              duration={pendingTodo.durationMinutes}
+              setDuration={(duration) => {
+                setPendingTodo({
+                  ...pendingTodo,
+                  durationMinutes: duration,
+                });
+              }}
+            />
+            {/* <SmallButton>
               <CircleAlert />
               Priority
             </SmallButton>
             <SmallButton>
               <Tags />
               Tags
-            </SmallButton>
+            </SmallButton> */}
           </div>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
         <DialogFooter className="border-t py-2">
           <div className="flex justify-between px-4 w-full">
@@ -139,8 +272,13 @@ export function NewTodoDialog({
                 <Switch />
                 <span className="text-xs">Create More</span>
               </div>
-              <Button type="submit" size="sm">
-                Create
+              <Button
+                type="submit"
+                size="sm"
+                disabled={!pendingTodo.title || mutation.isPending}
+                onClick={createTodo}
+              >
+                {mutation.isPending ? "Creating..." : "Create"}
               </Button>
             </div>
           </div>

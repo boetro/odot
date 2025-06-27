@@ -7,7 +7,12 @@ export const projectQueries = {
     queryFn: async () => {
       return await fetch("/api/projects", {
         credentials: "include",
-      }).then((res) => res.json() as Promise<Project[]>);
+      }).then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch projects");
+        }
+        return res.json() as Promise<Project[]>;
+      });
     },
   }),
 };

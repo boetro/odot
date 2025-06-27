@@ -32,11 +32,10 @@ SELECT * FROM todos
 WHERE user_id = $1 AND is_completed = false
 ORDER BY created_at DESC;
 
--- name: UpdateTodo :one
+-- name: UpdateTodo :exec
 UPDATE todos
-SET project_id = $2, parent_todo_id = $3, title = $4, description = $5, assigned_date = $6, duration_min = $7, priority = $8
-WHERE todo_id = $1
-RETURNING *;
+SET project_id = $2, parent_todo_id = $3, title = $4, description = $5, assigned_date = $6, duration_min = $7, priority = $8, is_completed = $9
+WHERE todo_id = $1;
 
 -- name: CompleteTodo :one
 UPDATE todos

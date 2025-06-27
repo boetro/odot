@@ -40,35 +40,23 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 		protected := api.Group("/")
 		authMiddleware := middleware.NewAuthMiddleware(cfg, logger)
 		protected.Use(authMiddleware.RequireAuth())
+		// User Handler
 		{
 			userHandler := handlers.NewUserHandler(querier, logger)
 			protected.GET("/me", userHandler.GetUser)
 		}
+		// Project Handler
 		{
 			projectHandler := handlers.NewProjectHandler(querier, logger)
 			protected.GET("/projects", projectHandler.ListProjects)
 			protected.POST("/projects", projectHandler.CreateProject)
 		}
+		// TODO handler
+		{
+			todoHandler := handlers.NewTodoHandler(querier, logger)
+			protected.GET("/todos", todoHandler.ListUserTodos)
+			protected.POST("/todos", todoHandler.CreateTodo)
+			protected.PUT("/todos/:todoId", todoHandler.UpdateTodo)
+		}
 	}
-
-	// 	// Protected routes with JWT auth
-	// 	protected := api.Group("/")
-	// 	protected.Use(middleware.JWTAuth())
-	// 	{
-	// 		// User routes
-	// 		users := protected.Group("/users")
-	// 		{
-	// 			users.GET("/me", handlers.GetCurrentUser())
-	// 			users.PUT("/me", handlers.UpdateUser(db, logger))
-	// 		}
-
-	// 		// Add your SaaS-specific routes here
-	// 		// For example:
-	// 		// subscriptions := protected.Group("/subscriptions")
-	// 		// {
-	// 		//     subscriptions.GET("/", handlers.ListSubscriptions())
-	// 		//     subscriptions.POST("/", handlers.CreateSubscription())
-	// 		// }
-	// 	}
-	// }
 }

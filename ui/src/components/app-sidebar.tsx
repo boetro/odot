@@ -22,6 +22,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
+  SidebarRail,
 } from "@/components/ui/sidebar";
 import { NavUser } from "./nav-user";
 import type { Project, User } from "@/lib/types";
@@ -195,8 +196,15 @@ export function AppSidebar({
             }}
           />
         </SidebarFooter>
+        <SidebarRail />
       </Sidebar>
-      <NewTodoDialog open={newTodoOpen} setOpen={setNewTodoOpen} />
+      {projects !== undefined && (
+        <NewTodoDialog
+          open={newTodoOpen}
+          setOpen={setNewTodoOpen}
+          projects={projects || []}
+        />
+      )}
       {projects !== undefined && (
         <NewProjectDialog
           open={newProjectOpen}

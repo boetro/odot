@@ -47,20 +47,19 @@ type Tag struct {
 }
 
 type Todo struct {
-	TodoID        int32              `json:"todoId"`
-	UserID        int32              `json:"userId"`
-	ProjectID     pgtype.Int4        `json:"projectId"`
-	ParentTodoID  pgtype.Int4        `json:"parentTodoId"`
-	Title         string             `json:"title"`
-	Description   pgtype.Text        `json:"description"`
-	IsCompleted   pgtype.Bool        `json:"isCompleted"`
-	DueDate       pgtype.Timestamptz `json:"dueDate"`
-	WorkStartTime pgtype.Timestamptz `json:"workStartTime"`
-	WorkEndTime   pgtype.Timestamptz `json:"workEndTime"`
-	Priority      pgtype.Int4        `json:"priority"`
-	CreatedAt     pgtype.Timestamptz `json:"createdAt"`
-	UpdatedAt     pgtype.Timestamptz `json:"updatedAt"`
-	CompletedAt   pgtype.Timestamptz `json:"completedAt"`
+	TodoID       int32              `json:"todoId"`
+	UserID       int32              `json:"userId"`
+	ProjectID    pgtype.Int4        `json:"projectId"`
+	ParentTodoID pgtype.Int4        `json:"parentTodoId"`
+	Title        string             `json:"title"`
+	Description  pgtype.Text        `json:"description"`
+	IsCompleted  pgtype.Bool        `json:"isCompleted"`
+	AssignedDate pgtype.Timestamptz `json:"assignedDate"`
+	DurationMin  pgtype.Int4        `json:"durationMin"`
+	Priority     pgtype.Int4        `json:"priority"`
+	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
+	CompletedAt  pgtype.Timestamptz `json:"completedAt"`
 }
 
 type TodoTag struct {

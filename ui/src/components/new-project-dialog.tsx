@@ -6,12 +6,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { useEffect, useRef, useState, forwardRef } from "react";
-import { Box, Check, Circle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Circle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { listProjectsKeys } from "@/lib/queries/keys";
 import type { Project } from "@/lib/types";
+import { SmallButton } from "./small-button";
+import ProjectDropdown from "./project-dropdown";
 
 const COMMON_COLORS = [
   { name: "Red", hex: "#ef4444" },
@@ -25,28 +27,6 @@ const COMMON_COLORS = [
   { name: "Indigo", hex: "#6366f1" },
   { name: "Cyan", hex: "#06b6d4" },
 ];
-
-const SmallButton = forwardRef<
-  HTMLButtonElement,
-  {
-    children: React.ReactNode;
-    onClick?: () => void;
-  }
->(({ children, onClick, ...props }, ref) => {
-  return (
-    <Button
-      ref={ref}
-      variant="outline"
-      className="h-6 text-xs rounded-sm gap-1.5 px-3 has-[>svg]:px-2.5 text-muted-foreground"
-      onClick={onClick}
-      {...props}
-    >
-      {children}
-    </Button>
-  );
-});
-
-SmallButton.displayName = "SmallButton";
 
 export function NewProjectDialog({
   open,
@@ -86,9 +66,6 @@ export function NewProjectDialog({
   });
 
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
-  const [isParentProjectPickerOpen, setIsParentProjectPickerOpen] =
-    useState(false);
-
   const [error, setError] = useState<string | null>(null);
 
   function resetForm() {
@@ -271,54 +248,17 @@ export function NewProjectDialog({
                 ))}
               </PopoverContent>
             </Popover>
-            <Popover
-              open={isParentProjectPickerOpen}
-              onOpenChange={setIsParentProjectPickerOpen}
-            >
-              <PopoverTrigger asChild>
-                <SmallButton>
-                  <Box
-                    style={{
-                      color: pendingProject.parentProject?.color || "inherit",
-                    }}
-                  />
-                  {pendingProject.parentProject?.name || "Parent Project"}
-                </SmallButton>
-              </PopoverTrigger>
-              <PopoverContent
-                className="flex flex-col w-36 p-1 overflow-y-auto max-h-56"
-                align="start"
-              >
-                {projects.map((project) => (
-                  <button
-                    key={project.id}
-                    className="flex justify-between items-center gap-2 p-2 text-sm hover:bg-accent rounded-sm"
-                    onClick={() => {
-                      if (project.id === pendingProject.parentProject?.id) {
-                        setPendingProject({
-                          ...pendingProject,
-                          parentProject: undefined,
-                        });
-                      } else {
-                        setPendingProject({
-                          ...pendingProject,
-                          parentProject: project,
-                        });
-                      }
-                      setIsParentProjectPickerOpen(false);
-                    }}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Box size={12} style={{ color: project.color }} />
-                      {project.name}
-                    </span>
-                    {project.id === pendingProject.parentProject?.id && (
-                      <Check size={16} />
-                    )}
-                  </button>
-                ))}
-              </PopoverContent>
-            </Popover>
+            <ProjectDropdown
+              selectedProject={pendingProject.parentProject}
+              setSelectedProject={(proj) => {
+                setPendingProject({
+                  ...pendingProject,
+                  parentProject: proj,
+                });
+              }}
+              defaultText="Parent Project"
+              projects={projects}
+            />
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>

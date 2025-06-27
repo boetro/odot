@@ -60,7 +60,7 @@ type Querier interface {
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
 	UpdateRefreshTokenLastUsed(ctx context.Context, tokenHash string) error
 	UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error)
-	UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error)
+	UpdateTodo(ctx context.Context, arg UpdateTodoParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 

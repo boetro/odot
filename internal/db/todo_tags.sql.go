@@ -143,7 +143,7 @@ func (q *Queries) ListTodoTagsByTodo(ctx context.Context, todoID int32) ([]Tag, 
 }
 
 const listTodosByTag = `-- name: ListTodosByTag :many
-SELECT td.todo_id, td.user_id, td.project_id, td.parent_todo_id, td.title, td.description, td.is_completed, td.due_date, td.work_start_time, td.work_end_time, td.priority, td.created_at, td.updated_at, td.completed_at FROM todos td
+SELECT td.todo_id, td.user_id, td.project_id, td.parent_todo_id, td.title, td.description, td.is_completed, td.assigned_date, td.duration_min, td.priority, td.created_at, td.updated_at, td.completed_at FROM todos td
 JOIN todo_tags tt ON td.todo_id = tt.todo_id
 WHERE tt.tag_id = $1
 ORDER BY td.created_at DESC
@@ -166,9 +166,8 @@ func (q *Queries) ListTodosByTag(ctx context.Context, tagID int32) ([]Todo, erro
 			&i.Title,
 			&i.Description,
 			&i.IsCompleted,
-			&i.DueDate,
-			&i.WorkStartTime,
-			&i.WorkEndTime,
+			&i.AssignedDate,
+			&i.DurationMin,
 			&i.Priority,
 			&i.CreatedAt,
 			&i.UpdatedAt,

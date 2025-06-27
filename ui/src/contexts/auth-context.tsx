@@ -28,8 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!success) {
               setIsAuthenticated(false);
               setUser(null);
-            } else {
-              setTimeout(refresh, 10 * 60 * 1000);
             }
           } catch {
             setIsAuthenticated(false);
