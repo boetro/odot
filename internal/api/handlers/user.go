@@ -27,17 +27,25 @@ func NewUserHandler(querier db.Querier, logger logger.Logger) *UserHandler {
 	}
 }
 
+// @Summary Get user information
+// @Description Retrieves information for the authenticated user.
+// @Tags users
+// @Produce json
+// @Success 200 {object} GetUserResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /user [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 	if !ok {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid user id"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid user id"})
 		return
 	}
 	user, err := h.querier.GetUser(c, userId)
 
 	if err != nil {
 		h.logger.Error("failed to get user", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "unknown error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "unknown error"})
 		return
 	}
 

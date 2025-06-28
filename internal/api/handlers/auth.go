@@ -70,6 +70,11 @@ func generateRandomState() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
+// @Summary Login with Google
+// @Description Redirects to Google for authentication.
+// @Tags auth
+// @Success 307
+// @Router /auth/google/login [get]
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	state := generateRandomState() // Store this in session/cache
 	c.SetSameSite(http.SameSiteLaxMode)
@@ -86,6 +91,13 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
 
+// @Summary Google callback
+// @Description Handles the callback from Google authentication.
+// @Tags auth
+// @Success 307
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/google/callback [get]
 func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 
 	code := c.Request.URL.Query().Get("code")
@@ -94,18 +106,18 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	// Verify state parameter
 	cookieState, err := c.Cookie("oauth_state")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing state cookie"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Missing state cookie"})
 		return
 	}
 	if state != cookieState {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid state parameter"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid state parameter"})
 		return
 	}
 	c.SetCookie("oauth_state", "", -1, "/", "", true, true)
 
 	token, err := h.googleConfig.Exchange(context.Background(), code)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to exchange token"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Failed to exchange token"})
 		return
 	}
 
@@ -116,7 +128,7 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	user, err := service.Userinfo.Get().Do()
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get user info"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Failed to get user info"})
 		return
 	}
 
@@ -200,6 +212,17 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	c.Redirect(http.StatusTemporaryRedirect, "http://localhost:5173/")
 }
 
+// @Summary Refresh authentication token
+// @Description Provides a new access token and refresh token.
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param refresh_token body RefreshTokenRequest true "Refresh token"
+// @Success 200 {object} TokenResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/refresh [post]
 func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	// Try to get refresh token from cookie first, then from body
 	refreshToken, err := c.Cookie("refresh_token")
@@ -208,14 +231,14 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 		// If no cookie, try to get from request body
 		var req RefreshTokenRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid request"})
 			return
 		}
 		refreshToken = req.RefreshToken
 	}
 
 	if refreshToken == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Refresh token required"})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Refresh token required"})
 		return
 	}
 
@@ -226,11 +249,11 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	dbRefreshToken, err := h.querier.GetRefreshToken(c, hashedToken)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
+			c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Invalid refresh token"})
 			return
 		}
 		h.logger.Error("Failed to get refresh token", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal error"})
 		return
 	}
 
@@ -238,7 +261,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	user, err := h.querier.GetUser(c, dbRefreshToken.UserID)
 	if err != nil {
 		h.logger.Error("Failed to get user", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal error"})
 		return
 	}
 
@@ -246,7 +269,7 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	tokenPair, newHashedRefreshToken, err := auth.GenerateTokenPair(user.UserID, user.Email, h.config.JWTSecret)
 	if err != nil {
 		h.logger.Error("Failed to generate new token pair", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal error"})
 		return
 	}
 
@@ -308,6 +331,11 @@ func (h *AuthHandler) RefreshToken(c *gin.Context) {
 	})
 }
 
+// @Summary Logout
+// @Description Logs the user out by revoking the refresh token and clearing cookies.
+// @Tags auth
+// @Success 200 {object} MessageResponse
+// @Router /auth/logout [post]
 func (h *AuthHandler) Logout(c *gin.Context) {
 	// Get refresh token from cookie
 	refreshToken, err := c.Cookie("refresh_token")
@@ -324,14 +352,21 @@ func (h *AuthHandler) Logout(c *gin.Context) {
 	c.SetCookie("auth_token", "", -1, "/", "", true, true)
 	c.SetCookie("refresh_token", "", -1, "/", "", true, true)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
+	c.JSON(http.StatusOK, MessageResponse{Message: "Successfully logged out"})
 }
 
+// @Summary Revoke all tokens
+// @Description Revokes all of the user's refresh tokens.
+// @Tags auth
+// @Success 200 {object} MessageResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /auth/revoke-all [post]
 func (h *AuthHandler) RevokeAllTokens(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
@@ -339,7 +374,7 @@ func (h *AuthHandler) RevokeAllTokens(c *gin.Context) {
 	err := h.querier.RevokeAllUserRefreshTokens(c, userID.(int32))
 	if err != nil {
 		h.logger.Error("Failed to revoke all user tokens", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal error"})
 		return
 	}
 

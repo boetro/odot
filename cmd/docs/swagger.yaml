@@ -1,4 +1,49 @@
 definitions:
+  handlers.CreateProjectRequest:
+    properties:
+      color:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      parent_project_id:
+        type: integer
+    required:
+    - color
+    - name
+    type: object
+  handlers.CreateTodoRequest:
+    properties:
+      assigned_date:
+        type: string
+      description:
+        type: string
+      duration_minutes:
+        type: integer
+      parent_todo_id:
+        type: integer
+      project_id:
+        type: integer
+      title:
+        type: string
+    required:
+    - title
+    type: object
+  handlers.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  handlers.GetUserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      profile_picture_url:
+        type: string
+    type: object
   handlers.HealthStatus:
     properties:
       dependencies:
@@ -35,9 +80,171 @@ definitions:
         description: Bytes allocated (even if freed)
         type: integer
     type: object
+  handlers.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  handlers.ProjectResponse:
+    properties:
+      color:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      parent_project_id:
+        type: integer
+    type: object
+  handlers.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  handlers.TodoResponse:
+    properties:
+      assigned_date:
+        type: string
+      completed:
+        type: boolean
+      duration_minutes:
+        type: integer
+      id:
+        type: integer
+      parent_todo_id:
+        type: integer
+      project_id:
+        type: integer
+      title:
+        type: string
+    type: object
+  handlers.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token_type:
+        type: string
+    type: object
+  handlers.UpdateTodoRequest:
+    properties:
+      assigned_date:
+        type: string
+      completed:
+        type: boolean
+      description:
+        type: string
+      duration_minutes:
+        type: integer
+      parent_todo_id:
+        type: integer
+      project_id:
+        type: integer
+      title:
+        type: string
+    required:
+    - title
+    type: object
 info:
   contact: {}
 paths:
+  /auth/google/callback:
+    get:
+      description: Handles the callback from Google authentication.
+      responses:
+        "307":
+          description: Temporary Redirect
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Google callback
+      tags:
+      - auth
+  /auth/google/login:
+    get:
+      description: Redirects to Google for authentication.
+      responses:
+        "307":
+          description: Temporary Redirect
+      summary: Login with Google
+      tags:
+      - auth
+  /auth/logout:
+    post:
+      description: Logs the user out by revoking the refresh token and clearing cookies.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+      summary: Logout
+      tags:
+      - auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Provides a new access token and refresh token.
+      parameters:
+      - description: Refresh token
+        in: body
+        name: refresh_token
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TokenResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Refresh authentication token
+      tags:
+      - auth
+  /auth/revoke-all:
+    post:
+      description: Revokes all of the user's refresh tokens.
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Revoke all tokens
+      tags:
+      - auth
   /health:
     get:
       description: Check the health of the application and its dependencies
@@ -64,4 +271,202 @@ paths:
       summary: Get application health status
       tags:
       - health
+  /projects:
+    get:
+      description: Retrieves all projects for the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.ProjectResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: List user projects
+      tags:
+      - projects
+    post:
+      consumes:
+      - application/json
+      description: Creates a new project for the authenticated user.
+      parameters:
+      - description: Project details
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.ProjectResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Create a new project
+      tags:
+      - projects
+  /todos:
+    get:
+      description: Retrieves all todos for the authenticated user, optionally filtered
+        by project.
+      parameters:
+      - description: Filter by project ID
+        in: query
+        name: project_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/handlers.TodoResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: List user todos
+      tags:
+      - todos
+    post:
+      consumes:
+      - application/json
+      description: Creates a new todo for the authenticated user.
+      parameters:
+      - description: Todo details
+        in: body
+        name: todo
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.CreateTodoRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/handlers.TodoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Create a new todo
+      tags:
+      - todos
+  /todos/{todoId}:
+    put:
+      consumes:
+      - application/json
+      description: Updates a specific todo for the authenticated user.
+      parameters:
+      - description: Todo ID
+        in: path
+        name: todoId
+        required: true
+        type: integer
+      - description: Updated todo details
+        in: body
+        name: todo
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateTodoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Update a todo
+      tags:
+      - todos
+  /user:
+    get:
+      description: Retrieves information for the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.GetUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      summary: Get user information
+      tags:
+      - users
 swagger: "2.0"

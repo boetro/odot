@@ -53,17 +53,29 @@ func NewProjectResponse(project *db.Project) *ProjectResponse {
 	}
 }
 
+// @Summary Create a new project
+// @Description Creates a new project for the authenticated user.
+// @Tags projects
+// @Accept json
+// @Produce json
+// @Param project body CreateProjectRequest true "Project details"
+// @Success 201 {object} ProjectResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /projects [post]
 func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
 	var req CreateProjectRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -83,11 +95,11 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	if req.ParentProjectID != 0 {
 		parentProject, err := h.querier.GetProject(c, req.ParentProjectID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
 			return
 		}
 		if parentProject.UserID != userId {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			c.JSON(http.StatusForbidden, ErrorResponse{Error: "Forbidden"})
 			return
 		}
 		parentProjectID = pgtype.Int4{
@@ -112,7 +124,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
 		return
 	}
 
@@ -123,18 +135,26 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 	return
 }
 
+// @Summary List user projects
+// @Description Retrieves all projects for the authenticated user.
+// @Tags projects
+// @Produce json
+// @Success 200 {array} ProjectResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /projects [get]
 func (h *ProjectHandler) ListProjects(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
 	projects, err := h.querier.ListProjects(c, userId)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
 		return
 	}
 

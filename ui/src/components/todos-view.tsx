@@ -104,14 +104,20 @@ function TodoBoard({
   state: LocalStorageState | undefined;
 }) {
   return (
-    <div className="flex flex-row space-x-2 px-2 overflow-auto">
+    <div className="flex flex-row space-x-2 px-2 overflow-x-auto h-full">
       {groupedTodos?.map((group) => (
-        <div key={group.key} className="w-72 border h-full">
-          <span>
+        <div
+          key={group.key}
+          className="w-72 h-full flex-shrink-0 flex flex-col"
+        >
+          <div>
             {state?.grouping === "project"
               ? group.groupData?.project?.name || "No Project"
               : group.key}
-          </span>
+          </div>
+          {group.todos.map((todo) => (
+            <div key={todo.id}>{todo.title}</div>
+          ))}
         </div>
       ))}
     </div>
@@ -729,7 +735,7 @@ export default function TodosView({
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex overflow-auto">
+      <div className="flex overflow-hidden flex-1 h-full">
         {view === "list" && (
           <TodoList
             groupedTodos={groupedTodos}

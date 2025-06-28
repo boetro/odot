@@ -25,22 +25,22 @@ func NewTodoHandler(querier db.Querier, logger logger.Logger) *TodoHandler {
 }
 
 type CreateTodoRequest struct {
-	Title        string         `json:"title" binding:"required"`
-	Description  string         `json:"description"`
-	AssignedDate *time.Time     `json:"assigned_date"`
-	DurationMin  *time.Duration `json:"duration_minutes"`
-	ParentTodoID *int32         `json:"parent_todo_id"`
-	ProjectID    *int32         `json:"project_id"`
+	Title        string     `json:"title" binding:"required"`
+	Description  string     `json:"description"`
+	AssignedDate *time.Time `json:"assigned_date"`
+	DurationMin  *int32     `json:"duration_minutes"`
+	ParentTodoID *int32     `json:"parent_todo_id"`
+	ProjectID    *int32     `json:"project_id"`
 }
 
 type UpdateTodoRequest struct {
-	Completed    bool           `json:"completed"`
-	Title        string         `json:"title" binding:"required"`
-	Description  string         `json:"description"`
-	AssignedDate *time.Time     `json:"assigned_date"`
-	DurationMin  *time.Duration `json:"duration_minutes"`
-	ParentTodoID *int32         `json:"parent_todo_id"`
-	ProjectID    *int32         `json:"project_id"`
+	Completed    bool       `json:"completed"`
+	Title        string     `json:"title" binding:"required"`
+	Description  string     `json:"description"`
+	AssignedDate *time.Time `json:"assigned_date"`
+	DurationMin  *int32     `json:"duration_minutes"`
+	ParentTodoID *int32     `json:"parent_todo_id"`
+	ProjectID    *int32     `json:"project_id"`
 }
 
 type TodoResponse struct {
@@ -87,17 +87,29 @@ func NewTodoResponse(todo *db.Todo) *TodoResponse {
 	}
 }
 
+// @Summary Create a new todo
+// @Description Creates a new todo for the authenticated user.
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Param todo body CreateTodoRequest true "Todo details"
+// @Success 201 {object} TodoResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /todos [post]
 func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
 		return
 	}
 
 	var req CreateTodoRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 		return
 	}
 
@@ -117,11 +129,11 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	if req.ProjectID != nil {
 		parentProject, err := h.querier.GetProject(c, *req.ProjectID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
 			return
 		}
 		if parentProject.UserID != userId {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			c.JSON(http.StatusForbidden, ErrorResponse{Error: "Forbidden"})
 			return
 		}
 		projectID = pgtype.Int4{
@@ -138,11 +150,11 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	if req.ParentTodoID != nil {
 		parentTodo, err := h.querier.GetTodo(c, *req.ParentTodoID)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
 			return
 		}
 		if parentTodo.UserID != userId {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			c.JSON(http.StatusForbidden, ErrorResponse{Error: "Forbidden"})
 			return
 		}
 		parentTodoID = pgtype.Int4{
@@ -201,6 +213,16 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	return
 }
 
+// @Summary List user todos
+// @Description Retrieves all todos for the authenticated user, optionally filtered by project.
+// @Tags todos
+// @Produce json
+// @Param project_id query int false "Filter by project ID"
+// @Success 200 {array} TodoResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /todos [get]
 func (h *TodoHandler) ListUserTodos(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 
@@ -246,6 +268,20 @@ func (h *TodoHandler) ListUserTodos(c *gin.Context) {
 	return
 }
 
+// @Summary Update a todo
+// @Description Updates a specific todo for the authenticated user.
+// @Tags todos
+// @Accept json
+// @Produce json
+// @Param todoId path int true "Todo ID"
+// @Param todo body UpdateTodoRequest true "Updated todo details"
+// @Success 200 {object} MessageResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /todos/{todoId} [put]
 func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 
