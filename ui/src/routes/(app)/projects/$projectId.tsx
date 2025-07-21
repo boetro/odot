@@ -5,11 +5,12 @@ import type { LocalStorageState } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { Views } from "react-big-calendar";
 import { useLocalStorage } from "react-use";
 
 export const Route = createFileRoute("/(app)/projects/$projectId")({
   component: RouteComponent,
-  loader: async ({ context, params }) => {
+  beforeLoad: async ({ context, params }) => {
     await context.queryClient.prefetchQuery(
       todoQueries.listProjectTodos(parseInt(params.projectId)),
     );
@@ -41,6 +42,7 @@ function RouteComponent() {
       ordering: "status",
       sortDirection: "asc",
       view: "list",
+      calendarView: Views.MONTH,
     },
   );
 
@@ -71,13 +73,14 @@ function RouteComponent() {
           ordering: prev?.ordering ?? "status",
           sortDirection: prev?.sortDirection ?? "asc",
           view: prev?.view ?? "list",
+          calendarView: Views.MONTH,
         }));
       }
     }
   }, [projects, localState?.filters?.visibleProjectIds, setLocalState]);
 
   return (
-    <div>
+    <div className="h-full w-full">
       {todosLoading || projectsLoading || localState === undefined ? (
         <div>Loading...</div>
       ) : (

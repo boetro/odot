@@ -31,10 +31,11 @@ func NewUserHandler(querier db.Querier, logger logger.Logger) *UserHandler {
 // @Description Retrieves information for the authenticated user.
 // @Tags users
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {object} GetUserResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /user [get]
+// @Router /me [get]
 func (h *UserHandler) GetUser(c *gin.Context) {
 	userId, ok := middleware.GetUserID(c)
 	if !ok {

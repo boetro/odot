@@ -14,8 +14,6 @@ export const Route = createFileRoute("/(app)")({
         },
       });
     }
-  },
-  loader: async ({ context }) => {
     await context.queryClient.prefetchQuery(projectQueries.listProjects());
   },
 });

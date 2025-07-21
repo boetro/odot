@@ -3,30 +3,50 @@ import { SmallButton } from "./small-button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import type { Project } from "@/lib/types";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 export default function ProjectDropdown({
   selectedProject,
   setSelectedProject,
   projects,
   defaultText = "Project",
+  variant = "small",
 }: {
   selectedProject: Project | undefined | null;
   setSelectedProject: (project: Project | undefined) => void;
   projects: Project[];
   defaultText?: string;
+  variant?: "small" | "large";
 }) {
   const [open, setOpen] = useState(false);
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <SmallButton>
-          <Box
-            style={{
-              color: selectedProject?.color || "inherit",
-            }}
-          />
-          {selectedProject?.name || defaultText}
-        </SmallButton>
+        {variant === "small" ? (
+          <SmallButton>
+            <Box
+              style={{
+                color: selectedProject?.color || "inherit",
+              }}
+            />
+            {selectedProject?.name || defaultText}
+          </SmallButton>
+        ) : (
+          <button
+            className={cn(
+              "flex flex-row gap-4 items-center hover:bg-muted rounded-md p-1",
+              selectedProject ? "" : "text-muted-foreground",
+            )}
+          >
+            <Box 
+              className="size-4"
+              style={{
+                color: selectedProject?.color || "inherit",
+              }}
+            />
+            <span>{selectedProject?.name || "Assign to project"}</span>
+          </button>
+        )}
       </PopoverTrigger>
       <PopoverContent
         className="flex flex-col w-36 p-1 overflow-y-auto max-h-60"

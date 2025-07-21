@@ -14,6 +14,7 @@ import {
   ArrowUpDown,
   ArrowUpIcon,
   Box,
+  Calendar,
   ChevronDownIcon,
   ChevronRight,
   Columns3,
@@ -23,7 +24,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "./ui/button";
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { TooltipContent, TooltipTrigger, Tooltip } from "./ui/tooltip";
 import {
   DropdownMenu,
@@ -37,7 +38,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { listProjectTodos, listUserTodos } from "@/lib/queries/keys";
+import { getTodo, listProjectTodos, listUserTodos } from "@/lib/queries/keys";
 import {
   Select,
   SelectContent,
@@ -53,6 +54,10 @@ import {
   CollapsibleTrigger,
 } from "./ui/collapsible";
 import { cn } from "@/lib/utils";
+import { Card } from "./ui/card";
+import { Views, type View as CalendarView } from "react-big-calendar";
+import { TodoCalendar } from "./ui/todo-calendar";
+import { Link } from "@tanstack/react-router";
 
 type TodoWithProject = Todo & {
   project?: Project;
@@ -103,22 +108,134 @@ function TodoBoard({
     | null;
   state: LocalStorageState | undefined;
 }) {
+  // TODO: figure out a way to remove this duplication
+  const queryClient = useQueryClient();
+
+  const completeTodoMutation = useMutation({
+    mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
+      return fetch(`/api/todos/${todo.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          completed,
+          title: todo.title,
+          description: todo.description,
+          assigned_date: todo.assigned_date,
+          duration_minutes: todo.duration_minutes,
+          parent_todo_id: todo.parent_todo_id,
+          project_id: todo.project_id,
+        }),
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: listUserTodos });
+      queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
+      if (variables.todo.project_id)
+        queryClient.invalidateQueries({
+          queryKey: listProjectTodos(variables.todo.project_id),
+        });
+    },
+  });
   return (
-    <div className="flex flex-row space-x-2 px-2 overflow-x-auto h-full">
+    <div className="flex flex-row px-2 overflow-auto h-full">
       {groupedTodos?.map((group) => (
-        <div
-          key={group.key}
-          className="w-72 h-full flex-shrink-0 flex flex-col"
-        >
-          <div>
-            {state?.grouping === "project"
-              ? group.groupData?.project?.name || "No Project"
-              : group.key}
+        <React.Fragment key={group.key}>
+          <div className="w-60 h-full flex-shrink-0 flex flex-col">
+            <div className="flex flex-row gap-2 items-center pb-2 flex-shrink-0 ml-4">
+              {state?.grouping === "project" && (
+                <Box
+                  className="size-4"
+                  style={{
+                    color: group.groupData?.project?.color || "inherit",
+                  }}
+                />
+              )}
+              <span>
+                {state?.grouping === "project"
+                  ? group.groupData?.project?.name || "no project"
+                  : group.key}
+              </span>
+            </div>
+            <div className="flex flex-col space-y-2 overflow-y-auto flex-1 px-2 pt-2">
+              {group.todos.map((todo) => (
+                <Card
+                  key={todo.id}
+                  className="rounded-sm border-0 ring-1 ring-border overflow-hidden p-0 flex-shrink-0"
+                >
+                  <Link
+                    to="/todos/$todoId"
+                    params={{ todoId: todo.id.toString() }}
+                    className="flex flex-col gap-2 hover:bg-muted p-2 hover:cursor-pointer w-full"
+                  >
+                    <div className="flex flex-row items-start gap-2">
+                      <div
+                        className="flex items-start pt-[2px]"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }}
+                      >
+                        <Checkbox
+                          checked={todo.completed}
+                          onCheckedChange={(checked) => {
+                            const isChecked = Boolean(checked);
+                            completeTodoMutation.mutate({
+                              todo: todo,
+                              completed: isChecked,
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="text-start text-sm font-medium flex-1">
+                        {todo.title}
+                      </div>
+                    </div>
+                    <div className="flex flex-row space-x-2 text-xs pl-6">
+                      {todo.project && (
+                        <span
+                          className="border rounded-sm p-0.5"
+                          style={{
+                            borderColor: todo.project.color,
+                          }}
+                        >
+                          {todo.project.name}
+                        </span>
+                      )}
+                      {todo.assigned_date && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="border rounded-sm p-0.5">
+                              {truncateDate(todo.assigned_date)}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {todo.assigned_date.getHours() === 0 &&
+                            todo.assigned_date.getMinutes() === 0 &&
+                            !todo.duration_minutes
+                              ? todo.assigned_date.toLocaleDateString()
+                              : todo.assigned_date.toLocaleTimeString()}
+                            {todo.duration_minutes && (
+                              <span className="ml-2">
+                                -{" "}
+                                {formatTime(
+                                  todo.assigned_date,
+                                  todo.duration_minutes,
+                                )}
+                              </span>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </Link>
+                </Card>
+              ))}
+            </div>
           </div>
-          {group.todos.map((todo) => (
-            <div key={todo.id}>{todo.title}</div>
-          ))}
-        </div>
+          {/* <Separator orientation="vertical" className="h-full" /> */}
+        </React.Fragment>
       ))}
     </div>
   );
@@ -148,7 +265,7 @@ function TodoList({
   state: LocalStorageState | undefined;
 }) {
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col w-full h-full overflow-y-auto">
       {groupedTodos === null &&
         sortedTodos.map((todo) => <TodoItem key={todo.id} todo={todo} />)}
       {groupedTodos !== null &&
@@ -223,6 +340,7 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: listUserTodos });
+      queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
       if (variables.todo.project_id)
         queryClient.invalidateQueries({
           queryKey: listProjectTodos(variables.todo.project_id),
@@ -242,12 +360,16 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
           });
         }}
       />
-      <button className="flex flex-row items hover:cursor-pointer justify-between w-full">
+      <Link
+        to="/todos/$todoId"
+        params={{ todoId: todo.id.toString() }}
+        className="flex flex-row hover:cursor-pointer justify-between w-full"
+      >
         <div className="text-start text-sm">{todo.title}</div>
         <div className="text-xs space-x-2">
           {todo.project && (
             <span
-              className="border rounded-md p-1"
+              className="border rounded-sm p-0.5"
               style={{
                 borderColor: todo.project.color,
               }}
@@ -258,7 +380,7 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
           {todo.assigned_date && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="border rounded-md p-1">
+                <span className="border rounded-sm p-0.5">
                   {truncateDate(todo.assigned_date)}
                 </span>
               </TooltipTrigger>
@@ -277,7 +399,7 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
             </Tooltip>
           )}
         </div>
-      </button>
+      </Link>
     </div>
   );
 }
@@ -319,28 +441,34 @@ export default function TodosView({
   };
 
   const setFilter = (newFilter: FilterState) => {
-    setLocalState((prev) => ({
-      filters: newFilter,
-      grouping: prev?.grouping ?? null,
-      ordering: prev?.ordering ?? "status",
-      sortDirection: prev?.sortDirection ?? "asc",
-      view: prev?.view ?? "list",
-    }));
+    setLocalState((prev) => {
+      return {
+        filters: newFilter,
+        grouping: prev?.grouping ?? null,
+        ordering: prev?.ordering ?? "status",
+        sortDirection: prev?.sortDirection ?? "asc",
+        view: prev?.view ?? "list",
+        calendarView: prev?.calendarView ?? Views.MONTH,
+      };
+    });
   };
 
   const setGrouping = (newGrouping: Grouping) => {
-    setLocalState((prev) => ({
-      filters: prev?.filters ?? {
-        showTODO: true,
-        showCompleted: false,
-        visibleProjectIds: getDefaultProjectIds(),
-        showWithNoProject: true,
-      },
-      grouping: newGrouping,
-      ordering: prev?.ordering ?? "status",
-      sortDirection: prev?.sortDirection ?? "asc",
-      view: prev?.view ?? "list",
-    }));
+    setLocalState((prev) => {
+      return {
+        filters: prev?.filters ?? {
+          showTODO: true,
+          showCompleted: false,
+          visibleProjectIds: getDefaultProjectIds(),
+          showWithNoProject: true,
+        },
+        grouping: newGrouping,
+        ordering: prev?.ordering ?? "status",
+        sortDirection: prev?.sortDirection ?? "asc",
+        view: prev?.view ?? "list",
+        calendarView: prev?.calendarView ?? Views.MONTH,
+      };
+    });
   };
 
   const setOrdering = (newOrdering: Ordering) => {
@@ -355,6 +483,7 @@ export default function TodosView({
       ordering: newOrdering,
       sortDirection: prev?.sortDirection ?? "asc",
       view: prev?.view ?? "list",
+      calendarView: prev?.calendarView ?? Views.MONTH,
     }));
   };
 
@@ -370,6 +499,23 @@ export default function TodosView({
       ordering: prev?.ordering ?? "status",
       sortDirection: newSortDirection,
       view: prev?.view ?? "list",
+      calendarView: prev?.calendarView ?? Views.MONTH,
+    }));
+  };
+
+  const setCalendarView = (newCalendarView: CalendarView) => {
+    setLocalState((prev) => ({
+      filters: prev?.filters ?? {
+        showTODO: true,
+        showCompleted: false,
+        visibleProjectIds: getDefaultProjectIds(),
+        showWithNoProject: true,
+      },
+      grouping: prev?.grouping ?? null,
+      ordering: prev?.ordering ?? "status",
+      sortDirection: prev?.sortDirection ?? "asc",
+      view: prev?.view ?? "list",
+      calendarView: newCalendarView,
     }));
   };
 
@@ -390,6 +536,7 @@ export default function TodosView({
         ordering: prev?.ordering ?? "status",
         sortDirection: prev?.sortDirection ?? "asc",
         view: newView,
+        calendarView: prev?.calendarView ?? Views.MONTH,
       };
     });
   };
@@ -474,7 +621,7 @@ export default function TodosView({
   }, [sortedTodos, grouping]);
 
   return (
-    <div className="pt-2 space-y-4 flex flex-col">
+    <div className="py-2 space-y-4 flex flex-col h-full w-full">
       <div className="flex flex-row justify-between">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -566,6 +713,7 @@ export default function TodosView({
                     </DropdownMenuItem>
                     {projects.map((project) => (
                       <DropdownMenuItem
+                        key={project.id}
                         onSelect={(e) => e.preventDefault()}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center space-x-1 text-xs"
@@ -620,7 +768,7 @@ export default function TodosView({
               <div className="flex flex-row space-x-2 w-full items-center justify-center">
                 <button
                   className={cn(
-                    "rounded-md h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+                    "rounded-sm h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
                     view === "list"
                       ? "dark:border-primary/50 border-primary/50 dark:bg-accent bg-accent"
                       : "",
@@ -632,7 +780,7 @@ export default function TodosView({
                 </button>
                 <button
                   className={cn(
-                    "rounded-md h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+                    "rounded-sm h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
                     view === "board"
                       ? "dark:border-primary/50 border-primary/50 dark:bg-accent bg-accent"
                       : "",
@@ -641,6 +789,18 @@ export default function TodosView({
                 >
                   <Columns3 className="size-4" />
                   Board
+                </button>
+                <button
+                  className={cn(
+                    "rounded-sm h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
+                    view === "calendar"
+                      ? "dark:border-primary/50 border-primary/50 dark:bg-accent bg-accent"
+                      : "",
+                  )}
+                  onClick={() => setView("calendar")}
+                >
+                  <Calendar className="size-4" />
+                  Calendar
                 </button>
               </div>
               <div className="grid grid-cols-3 text-xs items-center">
@@ -735,7 +895,7 @@ export default function TodosView({
           </PopoverContent>
         </Popover>
       </div>
-      <div className="flex overflow-hidden flex-1 h-full">
+      <div className="flex overflow-hidden flex-1 h-full w-full">
         {view === "list" && (
           <TodoList
             groupedTodos={groupedTodos}
@@ -747,6 +907,13 @@ export default function TodosView({
         )}
         {view === "board" && (
           <TodoBoard groupedTodos={groupedTodos} state={localState} />
+        )}
+        {view === "calendar" && (
+          <TodoCalendar
+            todos={filteredTodos}
+            selectedView={localState?.calendarView || Views.MONTH}
+            setSelectedView={setCalendarView}
+          />
         )}
       </div>
     </div>

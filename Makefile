@@ -3,7 +3,7 @@
 .PHONY: dev build test clean
 
 dev:
-	./dev.sh
+	./dev.sh $(ARGS)
 
 # Build the application
 build:

@@ -46,6 +46,7 @@ type UpdateTodoRequest struct {
 type TodoResponse struct {
 	ID           int64      `json:"id"`
 	Title        string     `json:"title"`
+	Description  *string    `json:"description"`
 	AssignedDate *time.Time `json:"assigned_date"`
 	DurationMin  *int32     `json:"duration_minutes"`
 	ParentTodoID *int32     `json:"parent_todo_id"`
@@ -58,6 +59,12 @@ func NewTodoResponse(todo *db.Todo) *TodoResponse {
 		ID:        int64(todo.TodoID),
 		Title:     todo.Title,
 		Completed: todo.IsCompleted.Bool,
+		Description: func() *string {
+			if todo.Description.Valid {
+				return &todo.Description.String
+			}
+			return nil
+		}(),
 		AssignedDate: func() *time.Time {
 			if todo.AssignedDate.Valid {
 				return &todo.AssignedDate.Time
@@ -92,6 +99,7 @@ func NewTodoResponse(todo *db.Todo) *TodoResponse {
 // @Tags todos
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param todo body CreateTodoRequest true "Todo details"
 // @Success 201 {object} TodoResponse
 // @Failure 400 {object} ErrorResponse
@@ -217,6 +225,7 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 // @Description Retrieves all todos for the authenticated user, optionally filtered by project.
 // @Tags todos
 // @Produce json
+// @Security BearerAuth
 // @Param project_id query int false "Filter by project ID"
 // @Success 200 {array} TodoResponse
 // @Failure 400 {object} ErrorResponse
@@ -273,6 +282,7 @@ func (h *TodoHandler) ListUserTodos(c *gin.Context) {
 // @Tags todos
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param todoId path int true "Todo ID"
 // @Param todo body UpdateTodoRequest true "Updated todo details"
 // @Success 200 {object} MessageResponse
@@ -417,4 +427,53 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "Todo updated successfully"})
 	return
+}
+
+// @Summary Get a specific todo
+// @Description Retrieves a specific todo by ID for the authenticated user.
+// @Tags todos
+// @Produce json
+// @Security BearerAuth
+// @Param todoId path int true "Todo ID"
+// @Success 200 {object} TodoResponse
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /todos/{todoId} [get]
+func (h *TodoHandler) GetTodo(c *gin.Context) {
+	userId, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	todoIdStr := c.Param("todoId")
+	if todoIdStr == "" {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Missing todo ID"})
+		return
+	}
+
+	todoIdInt, err := strconv.Atoi(todoIdStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid todo ID"})
+		return
+	}
+	todoId := int32(todoIdInt)
+
+	todo, err := h.querier.GetTodo(c, todoId)
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Todo not found"})
+		return
+	}
+
+	if todo.UserID != userId {
+		c.JSON(http.StatusForbidden, ErrorResponse{Error: "Forbidden"})
+		return
+	}
+
+	response := NewTodoResponse(&todo)
+	c.JSON(http.StatusOK, response)
 }

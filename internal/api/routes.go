@@ -57,6 +57,7 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 			protected.GET("/todos", todoHandler.ListUserTodos)
 			protected.POST("/todos", todoHandler.CreateTodo)
 			protected.PUT("/todos/:todoId", todoHandler.UpdateTodo)
+			protected.GET("/todos/:todoId", todoHandler.GetTodo)
 		}
 	}
 }

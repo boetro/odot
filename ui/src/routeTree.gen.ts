@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as appRouteRouteImport } from './routes/(app)/route'
 import { Route as appIndexRouteImport } from './routes/(app)/index'
-import { Route as appCalendarRouteImport } from './routes/(app)/calendar'
+import { Route as appTodosTodoIdRouteImport } from './routes/(app)/todos/$todoId'
 import { Route as appProjectsProjectIdRouteImport } from './routes/(app)/projects/$projectId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -29,9 +29,9 @@ const appIndexRoute = appIndexRouteImport.update({
   path: '/',
   getParentRoute: () => appRouteRoute,
 } as any)
-const appCalendarRoute = appCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
+const appTodosTodoIdRoute = appTodosTodoIdRouteImport.update({
+  id: '/todos/$todoId',
+  path: '/todos/$todoId',
   getParentRoute: () => appRouteRoute,
 } as any)
 const appProjectsProjectIdRoute = appProjectsProjectIdRouteImport.update({
@@ -43,35 +43,35 @@ const appProjectsProjectIdRoute = appProjectsProjectIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof appIndexRoute
   '/login': typeof LoginRoute
-  '/calendar': typeof appCalendarRoute
   '/projects/$projectId': typeof appProjectsProjectIdRoute
+  '/todos/$todoId': typeof appTodosTodoIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
-  '/calendar': typeof appCalendarRoute
   '/': typeof appIndexRoute
   '/projects/$projectId': typeof appProjectsProjectIdRoute
+  '/todos/$todoId': typeof appTodosTodoIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(app)': typeof appRouteRouteWithChildren
   '/login': typeof LoginRoute
-  '/(app)/calendar': typeof appCalendarRoute
   '/(app)/': typeof appIndexRoute
   '/(app)/projects/$projectId': typeof appProjectsProjectIdRoute
+  '/(app)/todos/$todoId': typeof appTodosTodoIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/calendar' | '/projects/$projectId'
+  fullPaths: '/' | '/login' | '/projects/$projectId' | '/todos/$todoId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/login' | '/calendar' | '/' | '/projects/$projectId'
+  to: '/login' | '/' | '/projects/$projectId' | '/todos/$todoId'
   id:
     | '__root__'
     | '/(app)'
     | '/login'
-    | '/(app)/calendar'
     | '/(app)/'
     | '/(app)/projects/$projectId'
+    | '/(app)/todos/$todoId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -102,11 +102,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof appIndexRouteImport
       parentRoute: typeof appRouteRoute
     }
-    '/(app)/calendar': {
-      id: '/(app)/calendar'
-      path: '/calendar'
-      fullPath: '/calendar'
-      preLoaderRoute: typeof appCalendarRouteImport
+    '/(app)/todos/$todoId': {
+      id: '/(app)/todos/$todoId'
+      path: '/todos/$todoId'
+      fullPath: '/todos/$todoId'
+      preLoaderRoute: typeof appTodosTodoIdRouteImport
       parentRoute: typeof appRouteRoute
     }
     '/(app)/projects/$projectId': {
@@ -120,15 +120,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface appRouteRouteChildren {
-  appCalendarRoute: typeof appCalendarRoute
   appIndexRoute: typeof appIndexRoute
   appProjectsProjectIdRoute: typeof appProjectsProjectIdRoute
+  appTodosTodoIdRoute: typeof appTodosTodoIdRoute
 }
 
 const appRouteRouteChildren: appRouteRouteChildren = {
-  appCalendarRoute: appCalendarRoute,
   appIndexRoute: appIndexRoute,
   appProjectsProjectIdRoute: appProjectsProjectIdRoute,
+  appTodosTodoIdRoute: appTodosTodoIdRoute,
 }
 
 const appRouteRouteWithChildren = appRouteRoute._addFileChildren(

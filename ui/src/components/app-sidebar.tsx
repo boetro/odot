@@ -1,13 +1,12 @@
 import {
   Box,
-  Calendar,
   Check,
   ChevronRight,
   CirclePlus,
   Home,
   LoaderCircle,
   Plus,
-  Search,
+  SearchIcon,
 } from "lucide-react";
 
 import {
@@ -28,7 +27,7 @@ import { NavUser } from "./nav-user";
 import type { Project, User } from "@/lib/types";
 import { NewTodoDialog } from "./new-todo-dialog";
 import { Link, useLocation } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { NewProjectDialog } from "./new-project-dialog";
 import { projectQueries } from "@/lib/queries/projects";
 import { useQuery } from "@tanstack/react-query";
@@ -37,23 +36,15 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "./ui/collapsible";
+import SearchDialog from "./search";
+import { todoQueries } from "@/lib/queries/todos";
 
 // Menu items.
 const items = [
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
-  },
-  {
     title: "Home",
     url: "/",
     icon: Home,
-  },
-  {
-    title: "Calendar",
-    url: "/calendar",
-    icon: Calendar,
   },
 ];
 
@@ -81,6 +72,10 @@ export function AppSidebar({
     projectQueries.listProjects(),
   );
 
+  const { data: todos, isLoading: todosLoading } = useQuery(
+    todoQueries.listUserTodos(),
+  );
+
   useEffect(() => {
     if (projects) {
       // Create a map for quick lookup
@@ -104,6 +99,8 @@ export function AppSidebar({
       setProjectHierarchy(hierarchy);
     }
   }, [projects]);
+
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
     <>
@@ -139,6 +136,17 @@ export function AppSidebar({
                   >
                     <CirclePlus />
                     <span>Create Todo</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    tooltip="Search"
+                    onClick={() => {
+                      setSearchOpen(true);
+                    }}
+                  >
+                    <SearchIcon />
+                    Search
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {items.map((item) => (
@@ -212,6 +220,12 @@ export function AppSidebar({
           projects={projects || []}
         />
       )}
+      <SearchDialog
+        open={searchOpen}
+        setOpen={setSearchOpen}
+        projects={projects || []}
+        todos={todos || []}
+      />
     </>
   );
 }
@@ -224,11 +238,37 @@ function ProjectTree({
   const loc = useLocation();
   const [open, setOpen] = useState(false);
 
+  // Helper function to check if current project contains the active project in its hierarchy
+  const containsActiveProject = useCallback(
+    (hierarchy: ProjectHierarchy, targetPath: string): boolean => {
+      const targetProjectId = targetPath.match(/\/projects\/(\d+)/)?.[1];
+      if (!targetProjectId) return false;
+
+      // Check if this project is the target
+      if (hierarchy.project.id.toString() === targetProjectId) {
+        return true;
+      }
+
+      // Check if any child contains the target
+      return hierarchy.children.some((child) =>
+        containsActiveProject(child, targetPath),
+      );
+    },
+    [],
+  );
+
   useEffect(() => {
-    if (`/projects/${projectHierarchy.project.id}` === loc.pathname) {
+    const isCurrentProject =
+      `/projects/${projectHierarchy.project.id}` === loc.pathname;
+    const containsActive = containsActiveProject(
+      projectHierarchy,
+      loc.pathname,
+    );
+
+    if (isCurrentProject || containsActive) {
       setOpen(true);
     }
-  }, [loc.pathname, projectHierarchy.project.id]);
+  }, [loc.pathname, projectHierarchy, containsActiveProject]);
 
   if (!projectHierarchy.children.length) {
     return (

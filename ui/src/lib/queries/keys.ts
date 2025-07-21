@@ -4,3 +4,4 @@ export const listProjectTodos = (projectId: number) => [
   "projectTodos",
   projectId,
 ];
+export const getTodo = (todoId: number) => ["todo", todoId];

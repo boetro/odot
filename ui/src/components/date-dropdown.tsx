@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { SmallButton } from "./small-button";
 import { Calendar as CalendarIcon, X } from "lucide-react";
@@ -15,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { cn } from "@/lib/utils";
 
 function formatDate(date: Date | undefined) {
   if (!date) {
@@ -29,10 +30,19 @@ function formatDate(date: Date | undefined) {
 }
 
 const durationOptions = [
+  // 15 minute increments for under 1 hour
+  { value: "15", label: "15 minutes" },
+  { value: "30", label: "30 minutes" },
+  { value: "45", label: "45 minutes" },
   { value: "60", label: "1 hour" },
+  // 30 minute increments for 1-4 hours
+  { value: "90", label: "1 hour 30 minutes" },
   { value: "120", label: "2 hours" },
+  { value: "150", label: "2 hours 30 minutes" },
   { value: "180", label: "3 hours" },
+  { value: "210", label: "3 hours 30 minutes" },
   { value: "240", label: "4 hours" },
+  // 1 hour increments for 4+ hours
   { value: "300", label: "5 hours" },
   { value: "360", label: "6 hours" },
   { value: "420", label: "7 hours" },
@@ -61,6 +71,8 @@ export default function DateDropdown({
   setSelectedTime,
   duration,
   setDuration,
+  onClose,
+  variant = "small",
 }: {
   selectedDate: Date | undefined;
   setSelectedDate: (date: Date | undefined) => void;
@@ -68,40 +80,132 @@ export default function DateDropdown({
   setSelectedTime: (time: string | undefined) => void;
   duration: string;
   setDuration: (duration: string) => void;
+  onClose?: () => void;
+  variant?: "small" | "large";
 }) {
   const [open, setOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [value, setValue] = useState<string | undefined>(undefined);
   const [month, setMonth] = useState<Date | undefined>(selectedDate);
 
-  const combinedDateTime = useMemo(() => {
+  useEffect(() => {
+    if (selectedDate) {
+      setValue(formatDate(selectedDate));
+    } else {
+      setValue(undefined);
+    }
+  }, [selectedDate]);
+
+  // Debounced date parsing function
+  const debouncedDateParse = useCallback(
+    (() => {
+      let timeoutId: NodeJS.Timeout;
+      return (inputValue: string) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+          const parsedDate = parseDate(inputValue);
+          if (parsedDate) {
+            // Only set the date part, preserve any existing time
+            const dateOnly = new Date(parsedDate);
+            dateOnly.setHours(0, 0, 0, 0);
+            setSelectedDate(dateOnly);
+            setMonth(dateOnly);
+          } else {
+            setSelectedDate(undefined);
+          }
+        }, 500); // 500ms debounce
+      };
+    })(),
+    [setSelectedDate]
+  );
+
+  const combinedDateTime = (() => {
     if (!selectedDate) return undefined;
 
-    let dateStr = selectedDate.toLocaleDateString();
+    let dateStr;
 
-    if (selectedTime) {
-      const combined = new Date(selectedDate);
-      const [hours, minutes] = selectedTime.split(":").map(Number);
-      combined.setHours(hours, minutes, 0, 0);
-      dateStr = combined.toLocaleString();
-    }
+    if (variant === "large") {
+      // For large variant, use more succinct format
+      dateStr = selectedDate.toLocaleDateString('en-US', {
+        month: 'long',
+        day: 'numeric'
+      });
 
-    if (duration) {
-      dateStr += ` - ${
-        durationOptions.find((opt) => opt.value === duration)?.label ||
-        `${duration} minutes`
-      }`;
+      if (selectedTime) {
+        const [hours, minutes] = selectedTime.split(":").map(Number);
+        const timeStr = new Date().setHours(hours, minutes, 0, 0);
+        const formattedTime = new Date(timeStr).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: false
+        });
+        
+        if (duration) {
+          const durationMinutes = parseInt(duration);
+          const endTime = new Date();
+          endTime.setHours(hours, minutes + durationMinutes, 0, 0);
+          const formattedEndTime = endTime.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: false
+          });
+          dateStr += `, ${formattedTime} - ${formattedEndTime}`;
+        } else {
+          dateStr += `, ${formattedTime}`;
+        }
+      } else if (duration) {
+        dateStr += ` - ${
+          durationOptions.find((opt) => opt.value === duration)?.label ||
+          `${duration} minutes`
+        }`;
+      }
+    } else {
+      // For small variant, use original format
+      dateStr = selectedDate.toLocaleDateString();
+
+      if (selectedTime) {
+        const combined = new Date(selectedDate);
+        const [hours, minutes] = selectedTime.split(":").map(Number);
+        combined.setHours(hours, minutes, 0, 0);
+        dateStr = combined.toLocaleString();
+      }
+
+      if (duration) {
+        dateStr += ` - ${
+          durationOptions.find((opt) => opt.value === duration)?.label ||
+          `${duration} minutes`
+        }`;
+      }
     }
     return dateStr;
-  }, [selectedDate, selectedTime, duration]);
+  })();
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={(newOpen) => {
+      setOpen(newOpen);
+      if (!newOpen && onClose) {
+        onClose();
+      }
+    }}>
       <PopoverTrigger asChild>
-        <SmallButton className={combinedDateTime ? "[&>svg]:text-primary" : ""}>
-          <CalendarIcon />
-          {combinedDateTime || "Date"}
-        </SmallButton>
+        {variant === "small" ? (
+          <SmallButton
+            className={combinedDateTime ? "[&>svg]:text-primary" : ""}
+          >
+            <CalendarIcon />
+            {combinedDateTime || "Date"}
+          </SmallButton>
+        ) : (
+          <button
+            className={cn(
+              "flex flex-row gap-4 items-center hover:bg-muted rounded-md p-1",
+              combinedDateTime ? "" : "text-muted-foreground",
+            )}
+          >
+            <CalendarIcon className="size-4" />
+            <span>{combinedDateTime ? combinedDateTime : "Assign a date"}</span>
+          </button>
+        )}
       </PopoverTrigger>
       <PopoverContent
         className="flex flex-col p-3 overflow-y-auto gap-3"
@@ -119,16 +223,7 @@ export default function DateDropdown({
               className="bg-background pr-10"
               onChange={(e) => {
                 setValue(e.target.value);
-                const parsedDate = parseDate(e.target.value);
-                if (parsedDate) {
-                  // Only set the date part, preserve any existing time
-                  const dateOnly = new Date(parsedDate);
-                  dateOnly.setHours(0, 0, 0, 0);
-                  setSelectedDate(dateOnly);
-                  setMonth(dateOnly);
-                } else {
-                  setSelectedDate(undefined);
-                }
+                debouncedDateParse(e.target.value);
               }}
               onKeyDown={(e) => {
                 if (e.key === "ArrowDown") {

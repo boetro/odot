@@ -1,3 +1,5 @@
+import { type View as CalendarView } from "react-big-calendar";
+
 export type User = {
   id: string;
   email: string;
@@ -33,7 +35,7 @@ export type FilterState = {
 export type Ordering = "title" | "assignedDate" | "status";
 export type Grouping = "project" | "status" | null;
 export type SortDirection = "asc" | "desc";
-export type View = "list" | "board";
+export type View = "list" | "board" | "calendar";
 
 export type LocalStorageState = {
   filters: FilterState;
@@ -41,4 +43,14 @@ export type LocalStorageState = {
   ordering: Ordering;
   sortDirection: SortDirection;
   view: View;
+  calendarView: CalendarView;
 };
+
+export interface CalendarProps {
+  todos: Todo[];
+  onTodoSelect?: (todo: Todo) => void;
+  onSlotSelect?: (slotInfo: { start: Date; end: Date }) => void;
+  className?: string;
+  selectedView: CalendarView;
+  setSelectedView: (view: CalendarView) => void;
+}

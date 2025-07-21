@@ -58,6 +58,7 @@ func NewProjectResponse(project *db.Project) *ProjectResponse {
 // @Tags projects
 // @Accept json
 // @Produce json
+// @Security BearerAuth
 // @Param project body CreateProjectRequest true "Project details"
 // @Success 201 {object} ProjectResponse
 // @Failure 400 {object} ErrorResponse
@@ -139,6 +140,7 @@ func (h *ProjectHandler) CreateProject(c *gin.Context) {
 // @Description Retrieves all projects for the authenticated user.
 // @Tags projects
 // @Produce json
+// @Security BearerAuth
 // @Success 200 {array} ProjectResponse
 // @Failure 401 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
