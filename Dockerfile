@@ -53,7 +53,8 @@ FROM gcr.io/distroless/static-debian12:nonroot
 COPY --from=go-builder /app/bin/server /server
 
 # Copy goose binary for migrations
-COPY --from=go-builder /go/bin/goose /goose
+COPY --from=go-builder /go/bin/goose /usr/local/bin/goose
+
 
 # Copy migrations
 COPY sql/migrations /migrations
