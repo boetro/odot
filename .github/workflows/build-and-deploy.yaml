@@ -1,0 +1,74 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Checkout k8s-configs repository
+        uses: actions/checkout@v4
+        with:
+          repository: boetro/k8s-configs
+          token: ${{ secrets.GITHUB_TOKEN }}
+          path: k8s-configs
+
+      - name: Update Kubernetes deployment
+        run: |
+          # Update the image tag in deployment.yaml with the commit SHA
+          sed -i "s|image: ghcr.io/boetro/odot:.*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-${GITHUB_SHA:0:7}|g" k8s-configs/applications/odot/deployment.yaml
+
+          # Configure git and commit changes
+          cd k8s-configs
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add odot/deployment.yaml
+
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update odot deployment image tag to main-${{ github.sha }}"
+            git push
+          fi
