@@ -30,6 +30,9 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download && go mod verify
 
+# Install goose for migrations
+RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+
 # Copy source code
 COPY . .
 
@@ -48,6 +51,12 @@ FROM gcr.io/distroless/static-debian12:nonroot
 
 # Copy the binary from go-builder stage
 COPY --from=go-builder /app/bin/server /server
+
+# Copy goose binary for migrations
+COPY --from=go-builder /go/bin/goose /goose
+
+# Copy migrations
+COPY sql/migrations /migrations
 
 # Use non-root user for security
 USER nonroot:nonroot
