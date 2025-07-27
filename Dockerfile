@@ -37,7 +37,7 @@ COPY . .
 COPY --from=ui-builder /app/ui/dist ./ui/dist
 
 # Build the application with optimizations (UI files will be embedded)
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
     -ldflags='-w -s -extldflags "-static"' \
     -a -installsuffix cgo \
     -o bin/server \
