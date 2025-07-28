@@ -20,7 +20,10 @@ COPY ui/ ./
 RUN bun run build
 
 # Go Build stage
-FROM golang:1.24-bookworm AS go-builder
+FROM golang:1.24-alpine AS go-builder
+
+# Install required packages for building
+RUN apk add --no-cache curl ca-certificates
 
 WORKDIR /app
 
@@ -30,8 +33,10 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download && go mod verify
 
-# Install goose for migrations
-RUN go install github.com/pressly/goose/v3/cmd/goose@latest
+# Install goose binary directly (much faster than go install)
+RUN curl -fsSL https://github.com/pressly/goose/releases/latest/download/goose_linux_arm64 -o /tmp/goose && \
+    chmod +x /tmp/goose && \
+    mv /tmp/goose /go/bin/goose
 
 # Copy source code
 COPY . .
