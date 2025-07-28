@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: boetro/k8s-configs
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.K8S_REPO_GITHUB_TOKEN }}
           path: k8s-configs
 
       - name: Update Kubernetes deployment

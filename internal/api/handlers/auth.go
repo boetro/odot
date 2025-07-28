@@ -208,8 +208,7 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	)
 
 	// Redirect to frontend with token or set secure cookie
-	// TODO: probably need to do something here
-	c.Redirect(http.StatusTemporaryRedirect, "http://localhost:5173/")
+	c.Redirect(http.StatusTemporaryRedirect, h.config.LoginSuccessRedirectURI)
 }
 
 // @Summary Refresh authentication token

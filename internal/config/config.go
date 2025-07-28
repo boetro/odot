@@ -8,14 +8,15 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Port               string
-	LogLevel           string
-	DatabaseURL        string
-	Environment        string
-	JWTSecret          string
-	GoogleClientID     string
-	GoogleClientSecret string
-	GoogleRedirectURI  string
+	Port                    string
+	LogLevel                string
+	DatabaseURL             string
+	Environment             string
+	JWTSecret               string
+	GoogleClientID          string
+	GoogleClientSecret      string
+	GoogleRedirectURI       string
+	LoginSuccessRedirectURI string
 }
 
 // Load reads configuration from environment variables
@@ -58,6 +59,11 @@ func Load() (*Config, error) {
 	googleRedirectURI := os.Getenv("GOOGLE_REDIRECT_URI")
 	if googleRedirectURI == "" {
 		return nil, fmt.Errorf("GOOGLE_REDIRECT_URI environment variable is required")
+	}
+
+	loginSuccessURI := os.Getenv("LOGIN_SUCCESS_REDIRECT_URI")
+	if loginSuccessURI == "" {
+		loginSuccessURI = "http://localhost:5173"
 	}
 
 	return &Config{
