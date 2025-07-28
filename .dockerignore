@@ -1,0 +1,27 @@
+# Ignore node_modules from UI build (we install fresh in Docker)
+ui/node_modules
+ui/.next
+ui/dist
+
+# Development files
+.git
+.github
+*.md
+README.md
+.gitignore
+.env*
+.DS_Store
+
+# Go build artifacts
+bin/
+*.log
+coverage.out
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+Thumbs.db
