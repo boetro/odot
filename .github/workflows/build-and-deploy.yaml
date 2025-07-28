@@ -67,7 +67,7 @@ jobs:
           cd k8s-configs
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add odot/deployment.yaml
+          git add applications/odot/deployment.yaml
 
           # Only commit if there are changes
           if git diff --staged --quiet; then
