@@ -1,9 +1,7 @@
-"use client";
-
 import { useState, useMemo, useCallback } from "react";
 import { Calendar, momentLocalizer, Views } from "react-big-calendar";
 import moment from "moment";
-import { TodoEvent } from "./todo-event";
+import { TodoEvent } from "./ui/todo-event";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import type { CalendarProps, Todo } from "@/lib/types";
 import { getTodoColor } from "@/lib/todo-utils";

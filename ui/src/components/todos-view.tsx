@@ -24,7 +24,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "./ui/button";
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import { TooltipContent, TooltipTrigger, Tooltip } from "./ui/tooltip";
 import {
   DropdownMenu,
@@ -56,7 +56,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Card } from "./ui/card";
 import { Views, type View as CalendarView } from "react-big-calendar";
-import { TodoCalendar } from "./ui/todo-calendar";
+import { TodoCalendar } from "./todo-calendar";
 import { Link } from "@tanstack/react-router";
 
 type TodoWithProject = Todo & {
@@ -426,135 +426,147 @@ export default function TodosView({
     }));
   }, [todos, projects]);
 
-  const filter = localState?.filters;
-  const grouping = localState?.grouping;
-  const ordering = localState?.ordering;
-  const sortDirection = localState?.sortDirection;
-
-  // Helper function to get default project IDs map
-  const getDefaultProjectIds = () => {
+  const defaultProjectIds = useMemo(() => {
     const map: Record<number, boolean> = {};
     projects.forEach((proj) => {
       map[proj.id] = true;
     });
     return map;
-  };
+  }, [projects]);
 
-  const setFilter = (newFilter: FilterState) => {
-    setLocalState((prev) => {
-      return {
-        filters: newFilter,
-        grouping: prev?.grouping ?? null,
-        ordering: prev?.ordering ?? "status",
-        sortDirection: prev?.sortDirection ?? "asc",
-        view: prev?.view ?? "list",
-        calendarView: prev?.calendarView ?? Views.MONTH,
-      };
-    });
-  };
-
-  const setGrouping = (newGrouping: Grouping) => {
-    setLocalState((prev) => {
-      return {
-        filters: prev?.filters ?? {
-          showTODO: true,
-          showCompleted: false,
-          visibleProjectIds: getDefaultProjectIds(),
-          showWithNoProject: true,
-        },
-        grouping: newGrouping,
-        ordering: prev?.ordering ?? "status",
-        sortDirection: prev?.sortDirection ?? "asc",
-        view: prev?.view ?? "list",
-        calendarView: prev?.calendarView ?? Views.MONTH,
-      };
-    });
-  };
-
-  const setOrdering = (newOrdering: Ordering) => {
-    setLocalState((prev) => ({
-      filters: prev?.filters ?? {
-        showTODO: true,
-        showCompleted: false,
-        visibleProjectIds: getDefaultProjectIds(),
-        showWithNoProject: true,
-      },
-      grouping: prev?.grouping ?? null,
-      ordering: newOrdering,
-      sortDirection: prev?.sortDirection ?? "asc",
-      view: prev?.view ?? "list",
-      calendarView: prev?.calendarView ?? Views.MONTH,
-    }));
-  };
-
-  const setSortDirection = (newSortDirection: SortDirection) => {
-    setLocalState((prev) => ({
-      filters: prev?.filters ?? {
-        showTODO: true,
-        showCompleted: false,
-        visibleProjectIds: getDefaultProjectIds(),
-        showWithNoProject: true,
-      },
-      grouping: prev?.grouping ?? null,
-      ordering: prev?.ordering ?? "status",
-      sortDirection: newSortDirection,
-      view: prev?.view ?? "list",
-      calendarView: prev?.calendarView ?? Views.MONTH,
-    }));
-  };
-
-  const setCalendarView = (newCalendarView: CalendarView) => {
-    setLocalState((prev) => ({
-      filters: prev?.filters ?? {
-        showTODO: true,
-        showCompleted: false,
-        visibleProjectIds: getDefaultProjectIds(),
-        showWithNoProject: true,
-      },
-      grouping: prev?.grouping ?? null,
-      ordering: prev?.ordering ?? "status",
-      sortDirection: prev?.sortDirection ?? "asc",
-      view: prev?.view ?? "list",
-      calendarView: newCalendarView,
-    }));
-  };
-
-  const setView = (newView: View) => {
-    setLocalState((prev) => {
-      let updatedGrouping = prev?.grouping ?? null;
-      if (newView === "board" && updatedGrouping === null) {
-        updatedGrouping = "project";
-      }
-      return {
-        filters: prev?.filters ?? {
-          showTODO: true,
-          showCompleted: false,
-          visibleProjectIds: getDefaultProjectIds(),
-          showWithNoProject: true,
-        },
-        grouping: updatedGrouping,
-        ordering: prev?.ordering ?? "status",
-        sortDirection: prev?.sortDirection ?? "asc",
-        view: newView,
-        calendarView: prev?.calendarView ?? Views.MONTH,
-      };
-    });
-  };
-  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
-
+  const filter = localState?.filters;
+  const grouping = localState?.grouping;
+  const ordering = localState?.ordering;
+  const sortDirection = localState?.sortDirection;
   const view = localState?.view ?? "list";
 
+  const getCompleteState = useCallback(
+    (current: LocalStorageState | undefined): LocalStorageState => {
+      const currentCalendarView =
+        localState?.calendarView ?? current?.calendarView ?? Views.MONTH;
+
+      return {
+        filters: current?.filters ?? {
+          showTODO: true,
+          showCompleted: false,
+          visibleProjectIds: defaultProjectIds,
+          showWithNoProject: true,
+        },
+        grouping: current?.grouping ?? null,
+        ordering: current?.ordering ?? "status",
+        sortDirection: current?.sortDirection ?? "asc",
+        view: current?.view ?? "list",
+        calendarView: currentCalendarView,
+      };
+    },
+    [defaultProjectIds, localState?.calendarView],
+  );
+
+  const setFilter = useCallback(
+    (newFilter: FilterState) => {
+      setLocalState((prev) => {
+        const baseState = getCompleteState(prev);
+        return {
+          ...baseState,
+          filters: newFilter,
+        };
+      });
+    },
+    [setLocalState, getCompleteState],
+  );
+
+  const setGrouping = useCallback(
+    (newGrouping: Grouping) => {
+      setLocalState((prev) => {
+        const baseState = getCompleteState(prev);
+        return {
+          ...baseState,
+          grouping: newGrouping,
+        };
+      });
+    },
+    [setLocalState, getCompleteState],
+  );
+
+  const setOrdering = useCallback(
+    (newOrdering: Ordering) => {
+      setLocalState((prev) => {
+        const baseState = getCompleteState(prev);
+        return {
+          ...baseState,
+          ordering: newOrdering,
+        };
+      });
+    },
+    [setLocalState, getCompleteState],
+  );
+
+  const setSortDirection = useCallback(
+    (newSortDirection: SortDirection) => {
+      setLocalState((prev) => {
+        const baseState = getCompleteState(prev);
+        return {
+          ...baseState,
+          sortDirection: newSortDirection,
+        };
+      });
+    },
+    [setLocalState, getCompleteState],
+  );
+
+  const setCalendarView = useCallback(
+    (newCalendarView: CalendarView) => {
+      setLocalState((prev) => {
+        const baseState = getCompleteState(prev);
+        return {
+          ...baseState,
+          calendarView: newCalendarView,
+        };
+      });
+    },
+    [setLocalState, getCompleteState],
+  );
+
+  const setView = useCallback(
+    (newView: View) => {
+      setLocalState((prev) => {
+        const baseState = getCompleteState(prev);
+        const updatedState = { ...baseState, view: newView };
+        // Auto-set grouping to project when switching to board view if no grouping is set
+        if (newView === "board" && !baseState.grouping) {
+          updatedState.grouping = "project";
+        }
+        return updatedState;
+      });
+    },
+    [setLocalState, getCompleteState],
+  );
+  const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
+
+  const updateCollapsedGroups = useCallback((groups: string[]) => {
+    setCollapsedGroups(groups);
+  }, []);
+
   const filteredTodos = useMemo(() => {
-    if (!filter) return todosWithProjects;
+    const currentFilter = filter ?? {
+      showTODO: true,
+      showCompleted: false,
+      visibleProjectIds: defaultProjectIds,
+      showWithNoProject: true,
+    };
+
     return todosWithProjects.filter((todo) => {
-      if (!filter.showTODO && !todo.completed) return false;
-      if (!filter.showCompleted && todo.completed) return false;
-      if (!filter.showWithNoProject && !todo.project) return false;
-      if (todo.project && !filter.visibleProjectIds[todo.project?.id || -1])
+      if (!currentFilter.showTODO && !todo.completed) return false;
+      if (!currentFilter.showCompleted && todo.completed) return false;
+      if (!currentFilter.showWithNoProject && !todo.project) return false;
+      if (
+        todo.project &&
+        !currentFilter.visibleProjectIds[todo.project?.id || -1]
+      )
         return false;
       return true;
     });
-  }, [todosWithProjects, filter]);
+  }, [todosWithProjects, filter, defaultProjectIds]);
 
   const sortedTodos = useMemo(() => {
     return [...filteredTodos].sort((a, b) => {
@@ -654,7 +666,8 @@ export default function TodosView({
                           setFilter({
                             showTODO: Boolean(checked),
                             showCompleted: filter?.showCompleted ?? false,
-                            visibleProjectIds: filter?.visibleProjectIds ?? {},
+                            visibleProjectIds:
+                              filter?.visibleProjectIds ?? defaultProjectIds,
                             showWithNoProject:
                               filter?.showWithNoProject ?? true,
                           });
@@ -674,7 +687,8 @@ export default function TodosView({
                           setFilter({
                             showTODO: filter?.showTODO ?? true,
                             showCompleted: Boolean(checked),
-                            visibleProjectIds: filter?.visibleProjectIds ?? {},
+                            visibleProjectIds:
+                              filter?.visibleProjectIds ?? defaultProjectIds,
                             showWithNoProject:
                               filter?.showWithNoProject ?? true,
                           });
@@ -703,7 +717,8 @@ export default function TodosView({
                           setFilter({
                             showTODO: filter?.showTODO ?? true,
                             showCompleted: filter?.showCompleted ?? false,
-                            visibleProjectIds: filter?.visibleProjectIds ?? {},
+                            visibleProjectIds:
+                              filter?.visibleProjectIds ?? defaultProjectIds,
                             showWithNoProject: Boolean(checked),
                           });
                         }}
@@ -726,7 +741,7 @@ export default function TodosView({
                           onCheckedChange={(checked) => {
                             const isChecked = Boolean(checked);
                             const currentVisibleIds =
-                              filter?.visibleProjectIds ?? {};
+                              filter?.visibleProjectIds ?? defaultProjectIds;
                             setFilter({
                               showTODO: filter?.showTODO ?? true,
                               showCompleted: filter?.showCompleted ?? false,
@@ -902,7 +917,7 @@ export default function TodosView({
             sortedTodos={sortedTodos}
             state={localState}
             collapsedGroups={collapsedGroups}
-            setCollapsedGroups={setCollapsedGroups}
+            setCollapsedGroups={updateCollapsedGroups}
           />
         )}
         {view === "board" && (
