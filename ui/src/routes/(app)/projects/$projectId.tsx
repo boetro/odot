@@ -1,12 +1,9 @@
 import TodosView from "@/components/todos-view";
+import { createTodoViewStore } from "@/hooks/todos-view-store";
 import { projectQueries } from "@/lib/queries/projects";
 import { todoQueries } from "@/lib/queries/todos";
-import type { LocalStorageState } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { Views } from "react-big-calendar";
-import { useLocalStorage } from "react-use";
 
 export const Route = createFileRoute("/(app)/projects/$projectId")({
   component: RouteComponent,
@@ -20,6 +17,8 @@ export const Route = createFileRoute("/(app)/projects/$projectId")({
 function RouteComponent() {
   const { projectId } = Route.useParams();
 
+  const useTodoView = createTodoViewStore(`project-${projectId}-todo-view`);
+
   const { data: todos, isLoading: todosLoading } = useQuery(
     todoQueries.listProjectTodos(parseInt(projectId)),
   );
@@ -29,66 +28,15 @@ function RouteComponent() {
     projectQueries.listProjects(),
   );
 
-  const [localState, setLocalState] = useLocalStorage<LocalStorageState>(
-    `view::${projectId}`,
-    {
-      filters: {
-        showTODO: true,
-        showCompleted: false,
-        visibleProjectIds: {},
-        showWithNoProject: true,
-      },
-      grouping: null,
-      ordering: "status",
-      sortDirection: "asc",
-      view: "list",
-      calendarView: Views.MONTH,
-    },
-  );
-
-  useEffect(() => {
-    if (projects && projects.length > 0) {
-      const currentVisibleIds = localState?.filters?.visibleProjectIds || {};
-      const newVisibleIds = { ...currentVisibleIds };
-      let hasNewProjects = false;
-
-      // Add projects that are not already present
-      projects.forEach((proj) => {
-        if (!(proj.id in newVisibleIds)) {
-          newVisibleIds[proj.id] = true;
-          hasNewProjects = true;
-        }
-      });
-
-      if (hasNewProjects) {
-        setLocalState((prev) => ({
-          filters: {
-            ...prev?.filters,
-            showTODO: prev?.filters?.showTODO ?? true,
-            showCompleted: prev?.filters?.showCompleted ?? false,
-            visibleProjectIds: newVisibleIds,
-            showWithNoProject: prev?.filters?.showWithNoProject ?? true,
-          },
-          grouping: prev?.grouping ?? null,
-          ordering: prev?.ordering ?? "status",
-          sortDirection: prev?.sortDirection ?? "asc",
-          view: prev?.view ?? "list",
-          calendarView: Views.MONTH,
-        }));
-      }
-    }
-  }, [projects, localState?.filters?.visibleProjectIds, setLocalState]);
-
   return (
     <div className="h-full w-full">
-      {todosLoading || projectsLoading || localState === undefined ? (
+      {todosLoading || projectsLoading ? (
         <div>Loading...</div>
       ) : (
         <TodosView
           todos={todos || []}
           projects={projects || []}
-          localState={localState}
-          setLocalState={setLocalState}
+          useTodoView={useTodoView}
         />
       )}
     </div>

@@ -1,13 +1,4 @@
-import type {
-  FilterState,
-  Grouping,
-  LocalStorageState,
-  Ordering,
-  Project,
-  SortDirection,
-  Todo,
-  View,
-} from "@/lib/types";
+import type { Grouping, Ordering, Project, Todo } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import {
   ArrowDownIcon,
@@ -58,6 +49,7 @@ import { Card } from "./ui/card";
 import { Views, type View as CalendarView } from "react-big-calendar";
 import { TodoCalendar } from "./todo-calendar";
 import { Link } from "@tanstack/react-router";
+import { type TodoViewState } from "@/hooks/todos-view-store";
 
 type TodoWithProject = Todo & {
   project?: Project;
@@ -93,7 +85,7 @@ function formatTime(startDate: Date, minutes: number) {
 
 function TodoBoard({
   groupedTodos,
-  state,
+  viewState,
 }: {
   groupedTodos:
     | {
@@ -106,7 +98,7 @@ function TodoBoard({
         todos: TodoWithProject[];
       }[]
     | null;
-  state: LocalStorageState | undefined;
+  viewState: TodoViewState;
 }) {
   // TODO: figure out a way to remove this duplication
   const queryClient = useQueryClient();
@@ -144,7 +136,7 @@ function TodoBoard({
         <React.Fragment key={group.key}>
           <div className="w-60 h-full flex-shrink-0 flex flex-col">
             <div className="flex flex-row gap-2 items-center pb-2 flex-shrink-0 ml-4">
-              {state?.grouping === "project" && (
+              {viewState.grouping === "project" && (
                 <Box
                   className="size-4"
                   style={{
@@ -153,7 +145,7 @@ function TodoBoard({
                 />
               )}
               <span>
-                {state?.grouping === "project"
+                {viewState.grouping === "project"
                   ? group.groupData?.project?.name || "no project"
                   : group.key}
               </span>
@@ -246,7 +238,7 @@ function TodoList({
   sortedTodos,
   collapsedGroups,
   setCollapsedGroups,
-  state,
+  viewState,
 }: {
   groupedTodos:
     | {
@@ -262,7 +254,7 @@ function TodoList({
   sortedTodos: TodoWithProject[];
   collapsedGroups: string[];
   setCollapsedGroups: (groups: string[]) => void;
-  state: LocalStorageState | undefined;
+  viewState: TodoViewState;
 }) {
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto">
@@ -291,7 +283,7 @@ function TodoList({
                 ) : (
                   <ChevronRight className="size-3" />
                 )}
-                {state?.grouping === "project" && (
+                {viewState.grouping === "project" && (
                   <Box
                     className="size-4"
                     style={{
@@ -300,7 +292,7 @@ function TodoList({
                   />
                 )}
                 <span>
-                  {state?.grouping === "project"
+                  {viewState?.grouping === "project"
                     ? group.groupData?.project?.name || "No Project"
                     : group.key}
                 </span>
@@ -407,15 +399,11 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
 export default function TodosView({
   todos,
   projects,
-  localState,
-  setLocalState,
+  useTodoView,
 }: {
   todos: Todo[];
   projects: Project[];
-  localState: LocalStorageState | undefined;
-  setLocalState: React.Dispatch<
-    React.SetStateAction<LocalStorageState | undefined>
-  >;
+  useTodoView: () => TodoViewState;
 }) {
   const todosWithProjects = useMemo((): TodoWithProject[] => {
     return todos.map((todo) => ({
@@ -426,121 +414,8 @@ export default function TodosView({
     }));
   }, [todos, projects]);
 
-  const defaultProjectIds = useMemo(() => {
-    const map: Record<number, boolean> = {};
-    projects.forEach((proj) => {
-      map[proj.id] = true;
-    });
-    return map;
-  }, [projects]);
+  const viewState = useTodoView();
 
-  const filter = localState?.filters;
-  const grouping = localState?.grouping;
-  const ordering = localState?.ordering;
-  const sortDirection = localState?.sortDirection;
-  const view = localState?.view ?? "list";
-
-  const getCompleteState = useCallback(
-    (current: LocalStorageState | undefined): LocalStorageState => {
-      const currentCalendarView =
-        localState?.calendarView ?? current?.calendarView ?? Views.MONTH;
-
-      return {
-        filters: current?.filters ?? {
-          showTODO: true,
-          showCompleted: false,
-          visibleProjectIds: defaultProjectIds,
-          showWithNoProject: true,
-        },
-        grouping: current?.grouping ?? null,
-        ordering: current?.ordering ?? "status",
-        sortDirection: current?.sortDirection ?? "asc",
-        view: current?.view ?? "list",
-        calendarView: currentCalendarView,
-      };
-    },
-    [defaultProjectIds, localState?.calendarView],
-  );
-
-  const setFilter = useCallback(
-    (newFilter: FilterState) => {
-      setLocalState((prev) => {
-        const baseState = getCompleteState(prev);
-        return {
-          ...baseState,
-          filters: newFilter,
-        };
-      });
-    },
-    [setLocalState, getCompleteState],
-  );
-
-  const setGrouping = useCallback(
-    (newGrouping: Grouping) => {
-      setLocalState((prev) => {
-        const baseState = getCompleteState(prev);
-        return {
-          ...baseState,
-          grouping: newGrouping,
-        };
-      });
-    },
-    [setLocalState, getCompleteState],
-  );
-
-  const setOrdering = useCallback(
-    (newOrdering: Ordering) => {
-      setLocalState((prev) => {
-        const baseState = getCompleteState(prev);
-        return {
-          ...baseState,
-          ordering: newOrdering,
-        };
-      });
-    },
-    [setLocalState, getCompleteState],
-  );
-
-  const setSortDirection = useCallback(
-    (newSortDirection: SortDirection) => {
-      setLocalState((prev) => {
-        const baseState = getCompleteState(prev);
-        return {
-          ...baseState,
-          sortDirection: newSortDirection,
-        };
-      });
-    },
-    [setLocalState, getCompleteState],
-  );
-
-  const setCalendarView = useCallback(
-    (newCalendarView: CalendarView) => {
-      setLocalState((prev) => {
-        const baseState = getCompleteState(prev);
-        return {
-          ...baseState,
-          calendarView: newCalendarView,
-        };
-      });
-    },
-    [setLocalState, getCompleteState],
-  );
-
-  const setView = useCallback(
-    (newView: View) => {
-      setLocalState((prev) => {
-        const baseState = getCompleteState(prev);
-        const updatedState = { ...baseState, view: newView };
-        // Auto-set grouping to project when switching to board view if no grouping is set
-        if (newView === "board" && !baseState.grouping) {
-          updatedState.grouping = "project";
-        }
-        return updatedState;
-      });
-    },
-    [setLocalState, getCompleteState],
-  );
   const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
 
   const updateCollapsedGroups = useCallback((groups: string[]) => {
@@ -548,33 +423,27 @@ export default function TodosView({
   }, []);
 
   const filteredTodos = useMemo(() => {
-    const currentFilter = filter ?? {
-      showTODO: true,
-      showCompleted: false,
-      visibleProjectIds: defaultProjectIds,
-      showWithNoProject: true,
-    };
-
     return todosWithProjects.filter((todo) => {
-      if (!currentFilter.showTODO && !todo.completed) return false;
-      if (!currentFilter.showCompleted && todo.completed) return false;
-      if (!currentFilter.showWithNoProject && !todo.project) return false;
+      if (!viewState.filters.showTODO && !todo.completed) return false;
+      if (!viewState.filters.showCompleted && todo.completed) return false;
+      if (!viewState.filters.showWithNoProject && !todo.project) return false;
       if (
+        viewState.filters.visibleProjectIds != null &&
         todo.project &&
-        !currentFilter.visibleProjectIds[todo.project?.id || -1]
+        !viewState.filters.visibleProjectIds[todo.project?.id || -1]
       )
         return false;
       return true;
     });
-  }, [todosWithProjects, filter, defaultProjectIds]);
+  }, [todosWithProjects, viewState]);
 
   const sortedTodos = useMemo(() => {
     return [...filteredTodos].sort((a, b) => {
       let result = 0;
 
-      if (ordering === "status") {
+      if (viewState.ordering === "status") {
         result = a.completed === b.completed ? 0 : a.completed ? 1 : -1;
-      } else if (ordering === "assignedDate") {
+      } else if (viewState.ordering === "assignedDate") {
         if (!a.assigned_date && !b.assigned_date) result = 0;
         else if (!a.assigned_date) result = 1;
         else if (!b.assigned_date) result = -1;
@@ -583,19 +452,19 @@ export default function TodosView({
         result = a.title.localeCompare(b.title);
       }
 
-      return (sortDirection ?? "asc") === "desc" ? -result : result;
+      return (viewState.sortDirection ?? "asc") === "desc" ? -result : result;
     });
-  }, [filteredTodos, ordering, sortDirection]);
+  }, [viewState.ordering, viewState.sortDirection, filteredTodos]);
 
   const groupedTodos = useMemo(() => {
-    if (!grouping) return null;
+    if (!viewState.grouping) return null;
 
     const grouped = sortedTodos.reduce(
       (acc, todo) => {
         let key: string;
         let groupData: { type: "project"; project: Project | null } | undefined;
 
-        if (grouping === "project") {
+        if (viewState.grouping === "project") {
           const project = todo.project || null;
           key = project ? `__project_id:${project.id}` : "__zno_project";
           groupData = { type: "project", project };
@@ -630,7 +499,7 @@ export default function TodosView({
     );
     result.sort((a, b) => a.key.localeCompare(b.key));
     return result;
-  }, [sortedTodos, grouping]);
+  }, [sortedTodos, viewState.grouping]);
 
   return (
     <div className="py-2 space-y-4 flex flex-col h-full w-full">
@@ -660,18 +529,11 @@ export default function TodosView({
                       className="text-xs"
                     >
                       <Checkbox
-                        checked={filter?.showTODO ?? true}
+                        checked={viewState.filters.showTODO}
                         className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
-                        onCheckedChange={(checked) => {
-                          setFilter({
-                            showTODO: Boolean(checked),
-                            showCompleted: filter?.showCompleted ?? false,
-                            visibleProjectIds:
-                              filter?.visibleProjectIds ?? defaultProjectIds,
-                            showWithNoProject:
-                              filter?.showWithNoProject ?? true,
-                          });
-                        }}
+                        onCheckedChange={(checked) =>
+                          viewState.filters.setShowCompleted(Boolean(checked))
+                        }
                       />
                       TODO
                     </DropdownMenuItem>
@@ -681,18 +543,11 @@ export default function TodosView({
                       className="text-xs"
                     >
                       <Checkbox
-                        checked={filter?.showCompleted ?? false}
+                        checked={viewState.filters.showCompleted}
                         className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
-                        onCheckedChange={(checked) => {
-                          setFilter({
-                            showTODO: filter?.showTODO ?? true,
-                            showCompleted: Boolean(checked),
-                            visibleProjectIds:
-                              filter?.visibleProjectIds ?? defaultProjectIds,
-                            showWithNoProject:
-                              filter?.showWithNoProject ?? true,
-                          });
-                        }}
+                        onCheckedChange={(checked) =>
+                          viewState.filters.setShowCompleted(Boolean(checked))
+                        }
                       />
                       Completed
                     </DropdownMenuItem>
@@ -711,17 +566,13 @@ export default function TodosView({
                       className="flex items-center space-x-1 text-xs"
                     >
                       <Checkbox
-                        checked={filter?.showWithNoProject ?? true}
+                        checked={viewState.filters.showWithNoProject}
                         className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
-                        onCheckedChange={(checked) => {
-                          setFilter({
-                            showTODO: filter?.showTODO ?? true,
-                            showCompleted: filter?.showCompleted ?? false,
-                            visibleProjectIds:
-                              filter?.visibleProjectIds ?? defaultProjectIds,
-                            showWithNoProject: Boolean(checked),
-                          });
-                        }}
+                        onCheckedChange={(checked) =>
+                          viewState.filters.setShowWithNoProject(
+                            Boolean(checked),
+                          )
+                        }
                       />
                       <Box className="size-4" />
                       <span>(no project)</span>
@@ -735,23 +586,19 @@ export default function TodosView({
                       >
                         <Checkbox
                           checked={
-                            filter?.visibleProjectIds?.[project.id] ?? false
+                            viewState.filters.visibleProjectIds === null ||
+                            viewState.filters.visibleProjectIds[project.id]
                           }
                           className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
                           onCheckedChange={(checked) => {
                             const isChecked = Boolean(checked);
-                            const currentVisibleIds =
-                              filter?.visibleProjectIds ?? defaultProjectIds;
-                            setFilter({
-                              showTODO: filter?.showTODO ?? true,
-                              showCompleted: filter?.showCompleted ?? false,
-                              showWithNoProject:
-                                filter?.showWithNoProject ?? true,
-                              visibleProjectIds: {
-                                ...currentVisibleIds,
-                                [project.id]: isChecked,
-                              },
-                            });
+                            if (isChecked) {
+                              viewState.filters.addVisibleProjectId(project.id);
+                            } else {
+                              viewState.filters.removeVisibleProjectId(
+                                project.id,
+                              );
+                            }
                           }}
                         />
                         <Box
@@ -784,11 +631,11 @@ export default function TodosView({
                 <button
                   className={cn(
                     "rounded-sm h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-                    view === "list"
+                    viewState.view === "list"
                       ? "dark:border-primary/50 border-primary/50 dark:bg-accent bg-accent"
                       : "",
                   )}
-                  onClick={() => setView("list")}
+                  onClick={() => viewState.setView("list")}
                 >
                   <ListTodo className="size-4" />
                   <span>List</span>
@@ -796,11 +643,11 @@ export default function TodosView({
                 <button
                   className={cn(
                     "rounded-sm h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-                    view === "board"
+                    viewState.view === "board"
                       ? "dark:border-primary/50 border-primary/50 dark:bg-accent bg-accent"
                       : "",
                   )}
-                  onClick={() => setView("board")}
+                  onClick={() => viewState.setView("board")}
                 >
                   <Columns3 className="size-4" />
                   Board
@@ -808,11 +655,11 @@ export default function TodosView({
                 <button
                   className={cn(
                     "rounded-sm h-12 w-full items-center justify-center flex flex-col text-xs border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
-                    view === "calendar"
+                    viewState.view === "calendar"
                       ? "dark:border-primary/50 border-primary/50 dark:bg-accent bg-accent"
                       : "",
                   )}
-                  onClick={() => setView("calendar")}
+                  onClick={() => viewState.setView("calendar")}
                 >
                   <Calendar className="size-4" />
                   Calendar
@@ -824,14 +671,14 @@ export default function TodosView({
                   <span>Grouping</span>
                 </div>
                 <Select
-                  value={grouping || "none"}
+                  value={viewState.grouping || "none"}
                   onValueChange={(value) => {
                     if (value === "none") {
-                      setGrouping(null);
+                      viewState.setGrouping(null);
                     } else {
                       // Always open all groups when changing grouping
                       setCollapsedGroups([]);
-                      setGrouping(value as Grouping);
+                      viewState.setGrouping(value as Grouping);
                     }
                   }}
                 >
@@ -843,7 +690,7 @@ export default function TodosView({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {view !== "board" && (
+                      {viewState.view !== "board" && (
                         <SelectItem className="text-xs" value="none">
                           No Grouping
                         </SelectItem>
@@ -865,8 +712,10 @@ export default function TodosView({
                 </div>
                 <div className="flex flex-row space-x-1 col-span-2">
                   <Select
-                    value={ordering ?? "status"}
-                    onValueChange={(value) => setOrdering(value as Ordering)}
+                    value={viewState.ordering ?? "status"}
+                    onValueChange={(value) =>
+                      viewState.setOrdering(value as Ordering)
+                    }
                   >
                     <SelectTrigger
                       size="sm"
@@ -893,12 +742,14 @@ export default function TodosView({
                     variant="outline"
                     className="size-8"
                     onClick={() =>
-                      setSortDirection(
-                        (sortDirection ?? "asc") === "asc" ? "desc" : "asc",
+                      viewState.setSortDirection(
+                        (viewState.sortDirection ?? "asc") === "asc"
+                          ? "desc"
+                          : "asc",
                       )
                     }
                   >
-                    {(sortDirection ?? "asc") === "asc" ? (
+                    {(viewState.sortDirection ?? "asc") === "asc" ? (
                       <ArrowUpIcon />
                     ) : (
                       <ArrowDownIcon />
@@ -911,23 +762,23 @@ export default function TodosView({
         </Popover>
       </div>
       <div className="flex overflow-hidden flex-1 h-full w-full">
-        {view === "list" && (
+        {viewState.view === "list" && (
           <TodoList
             groupedTodos={groupedTodos}
             sortedTodos={sortedTodos}
-            state={localState}
+            viewState={viewState}
             collapsedGroups={collapsedGroups}
             setCollapsedGroups={updateCollapsedGroups}
           />
         )}
-        {view === "board" && (
-          <TodoBoard groupedTodos={groupedTodos} state={localState} />
+        {viewState.view === "board" && (
+          <TodoBoard groupedTodos={groupedTodos} viewState={viewState} />
         )}
-        {view === "calendar" && (
+        {viewState.view === "calendar" && (
           <TodoCalendar
             todos={filteredTodos}
-            selectedView={localState?.calendarView || Views.MONTH}
-            setSelectedView={setCalendarView}
+            selectedView={viewState.calendarView}
+            setSelectedView={viewState.setCalendarView}
           />
         )}
       </div>
