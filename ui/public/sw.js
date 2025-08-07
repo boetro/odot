@@ -9,7 +9,8 @@ self.addEventListener("install", (event) => {
         return cache.addAll([
           "/",
           "/manifest.json",
-          "/logo.svg", // App icon referenced in manifest
+          "/icon-192.png", // App icon referenced in manifest
+          "/icon-512.png", // App icon referenced in manifest
         ]);
       })
       .then(() => self.skipWaiting()),
@@ -135,14 +136,15 @@ self.addEventListener("fetch", (event) => {
           response ||
           fetch(event.request).then((fetchResponse) => {
             // Cache JS/CSS assets and other static resources
-            if (fetchResponse.ok && (
-              event.request.url.includes('/assets/') ||
-              event.request.url.endsWith('.js') ||
-              event.request.url.endsWith('.css') ||
-              event.request.url.endsWith('.svg') ||
-              event.request.url.endsWith('.png') ||
-              event.request.url.endsWith('.jpg')
-            )) {
+            if (
+              fetchResponse.ok &&
+              (event.request.url.includes("/assets/") ||
+                event.request.url.endsWith(".js") ||
+                event.request.url.endsWith(".css") ||
+                event.request.url.endsWith(".svg") ||
+                event.request.url.endsWith(".png") ||
+                event.request.url.endsWith(".jpg"))
+            ) {
               const responseClone = fetchResponse.clone();
               caches.open(CACHE_NAME).then((cache) => {
                 cache.put(event.request, responseClone);
