@@ -43,8 +43,8 @@ export function NewTodoDialog({
     description: string;
     project?: Project;
     priority?: number;
-    assignedDate?: Date;
-    assignedTime?: string;
+    scheduledDate?: Date;
+    scheduledTime?: string;
     durationMinutes: string;
   }>({
     title: "",
@@ -57,7 +57,7 @@ export function NewTodoDialog({
     mutationFn: (newTodo: {
       title: string;
       description: string;
-      assigned_date?: Date;
+      scheduled_date?: Date;
       project_id?: number;
       duration_minutes?: number;
       parent_todo_id?: string;
@@ -102,9 +102,9 @@ export function NewTodoDialog({
       duration_minutes: pendingTodo.durationMinutes
         ? parseInt(pendingTodo.durationMinutes)
         : undefined,
-      assigned_date: combineDate(
-        pendingTodo.assignedDate,
-        pendingTodo.assignedTime,
+      scheduled_date: combineDate(
+        pendingTodo.scheduledDate,
+        pendingTodo.scheduledTime,
       ),
       project_id: pendingTodo.project?.id,
     });
@@ -224,18 +224,18 @@ export function NewTodoDialog({
               }}
             />
             <DateDropdown
-              selectedDate={pendingTodo.assignedDate}
+              selectedDate={pendingTodo.scheduledDate}
               setSelectedDate={(date) => {
                 setPendingTodo({
                   ...pendingTodo,
-                  assignedDate: date,
+                  scheduledDate: date,
                 });
               }}
-              selectedTime={pendingTodo.assignedTime}
+              selectedTime={pendingTodo.scheduledTime}
               setSelectedTime={(time) => {
                 setPendingTodo({
                   ...pendingTodo,
-                  assignedTime: time,
+                  scheduledTime: time,
                 });
               }}
               duration={pendingTodo.durationMinutes}

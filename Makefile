@@ -9,6 +9,10 @@ dev:
 build:
 	go build -o bin/server ./cmd/server
 
+# Build and run notify
+notify:
+	docker exec odot-notify-dev go run ./cmd/notify/main.go --start $(shell date -u -v-1M +"%Y-%m-%dT%H:%M:%SZ") --end $(shell date -u -v+30S +"%Y-%m-%dT%H:%M:%SZ")
+
 # Run tests
 test:
 	go test ./...

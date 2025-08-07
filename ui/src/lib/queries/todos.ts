@@ -17,8 +17,8 @@ export const todoQueries = {
         .then((todos) =>
           todos.map((todo) => ({
             ...todo,
-            assigned_date: todo.assigned_date
-              ? new Date(todo.assigned_date)
+            scheduled_date: todo.scheduled_date
+              ? new Date(todo.scheduled_date)
               : null,
           })),
         );
@@ -40,8 +40,8 @@ export const todoQueries = {
         .then((todos) =>
           todos.map((todo) => ({
             ...todo,
-            assigned_date: todo.assigned_date
-              ? new Date(todo.assigned_date)
+            scheduled_date: todo.scheduled_date
+              ? new Date(todo.scheduled_date)
               : null,
           })),
         );
@@ -61,8 +61,8 @@ export const todoQueries = {
         })
         .then((todo) => ({
           ...todo,
-          assigned_date: todo.assigned_date
-            ? new Date(todo.assigned_date)
+          scheduled_date: todo.scheduled_date
+            ? new Date(todo.scheduled_date)
             : null,
         }));
     },

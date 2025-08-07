@@ -19,6 +19,9 @@ import {
 
 import { Box } from "lucide-react";
 import { todoQueries } from "@/lib/queries/todos";
+import { toast } from "sonner";
+import { useCallback, useEffect, useState } from "react";
+import { pushNotificationService } from "../lib/push-notifications";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthRequired();
@@ -26,6 +29,77 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     projectQueries.listProjects(),
   );
   const location = useLocation();
+  const [isNotificationInitialized, setIsNotificationInitialized] =
+    useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [isSupported, setIsSupported] = useState(false);
+  const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false);
+  const [permission, setPermission] =
+    useState<NotificationPermission>("default");
+
+  const initializePushNotifications = async () => {
+    setIsSupported(pushNotificationService.supported);
+
+    if (pushNotificationService.supported) {
+      setPermission(Notification.permission);
+
+      const success = await pushNotificationService.initialize();
+      if (success) {
+        const subscription = await pushNotificationService.getSubscription();
+        setIsSubscribed(!!subscription);
+      }
+    }
+    setIsNotificationInitialized(true);
+  };
+
+  const handleSubscribe = useCallback(async () => {
+    if (!user || !pushNotificationService.supported) return;
+
+    setIsSubscriptionLoading(true);
+
+    try {
+      if (permission !== "granted") {
+        const newPermission = await pushNotificationService.requestPermission();
+        setPermission(newPermission);
+        if (newPermission !== "granted") {
+          return;
+        }
+      }
+
+      const subscription = await pushNotificationService.subscribe();
+      setIsSubscribed(!!subscription);
+    } catch (error) {
+      console.error("Failed to subscribe:", error);
+    } finally {
+      setIsSubscriptionLoading(false);
+    }
+  }, [user, permission]);
+
+  useEffect(() => {
+    initializePushNotifications();
+  }, []);
+
+  useEffect(() => {
+    if (
+      isNotificationInitialized &&
+      isSupported &&
+      permission !== "denied" &&
+      !isSubscriptionLoading
+    ) {
+      if (!isSubscribed) {
+        toast("Enable notifications for upcoming todos", {
+          action: { label: "Allow", onClick: () => handleSubscribe() },
+        });
+      }
+    }
+  }, [
+    isSubscribed,
+    isSupported,
+    isNotificationInitialized,
+    handleSubscribe,
+    permission,
+    isSubscriptionLoading,
+  ]);
 
   const selectedTodoId = (() => {
     if (location.pathname.startsWith("/todos")) {

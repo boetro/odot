@@ -15,7 +15,7 @@ const completeTodo = `-- name: CompleteTodo :one
 UPDATE todos
 SET is_completed = true
 WHERE todo_id = $1
-RETURNING todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at
+RETURNING todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at
 `
 
 func (q *Queries) CompleteTodo(ctx context.Context, todoID int32) (Todo, error) {
@@ -24,14 +24,17 @@ func (q *Queries) CompleteTodo(ctx context.Context, todoID int32) (Todo, error) 
 	err := row.Scan(
 		&i.TodoID,
 		&i.UserID,
+		&i.TemplateID,
 		&i.ProjectID,
 		&i.ParentTodoID,
 		&i.Title,
 		&i.Description,
 		&i.IsCompleted,
-		&i.AssignedDate,
+		&i.ScheduledDate,
 		&i.DurationMin,
 		&i.Priority,
+		&i.IsModified,
+		&i.ModifiedFields,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CompletedAt,
@@ -40,48 +43,153 @@ func (q *Queries) CompleteTodo(ctx context.Context, todoID int32) (Todo, error) 
 }
 
 const createTodo = `-- name: CreateTodo :one
-INSERT INTO todos (user_id, project_id, parent_todo_id, title, description, assigned_date, duration_min, priority)
-VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-RETURNING todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at
+INSERT INTO todos (user_id, template_id, project_id, parent_todo_id, title, description, scheduled_date, duration_min, priority, is_modified, modified_fields)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+RETURNING todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at
 `
 
 type CreateTodoParams struct {
-	UserID       int32              `json:"userId"`
-	ProjectID    pgtype.Int4        `json:"projectId"`
-	ParentTodoID pgtype.Int4        `json:"parentTodoId"`
-	Title        string             `json:"title"`
-	Description  pgtype.Text        `json:"description"`
-	AssignedDate pgtype.Timestamptz `json:"assignedDate"`
-	DurationMin  pgtype.Int4        `json:"durationMin"`
-	Priority     pgtype.Int4        `json:"priority"`
+	UserID         int32              `json:"userId"`
+	TemplateID     pgtype.Int4        `json:"templateId"`
+	ProjectID      pgtype.Int4        `json:"projectId"`
+	ParentTodoID   pgtype.Int4        `json:"parentTodoId"`
+	Title          string             `json:"title"`
+	Description    pgtype.Text        `json:"description"`
+	ScheduledDate  pgtype.Timestamptz `json:"scheduledDate"`
+	DurationMin    pgtype.Int4        `json:"durationMin"`
+	Priority       pgtype.Int4        `json:"priority"`
+	IsModified     pgtype.Bool        `json:"isModified"`
+	ModifiedFields []byte             `json:"modifiedFields"`
 }
 
 func (q *Queries) CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error) {
 	row := q.db.QueryRow(ctx, createTodo,
 		arg.UserID,
+		arg.TemplateID,
 		arg.ProjectID,
 		arg.ParentTodoID,
 		arg.Title,
 		arg.Description,
-		arg.AssignedDate,
+		arg.ScheduledDate,
 		arg.DurationMin,
 		arg.Priority,
+		arg.IsModified,
+		arg.ModifiedFields,
 	)
 	var i Todo
 	err := row.Scan(
 		&i.TodoID,
 		&i.UserID,
+		&i.TemplateID,
 		&i.ProjectID,
 		&i.ParentTodoID,
 		&i.Title,
 		&i.Description,
 		&i.IsCompleted,
-		&i.AssignedDate,
+		&i.ScheduledDate,
 		&i.DurationMin,
 		&i.Priority,
+		&i.IsModified,
+		&i.ModifiedFields,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CompletedAt,
+	)
+	return i, err
+}
+
+const createTodoFromTemplate = `-- name: CreateTodoFromTemplate :one
+INSERT INTO todos (user_id, template_id, project_id, parent_todo_id, title, description, scheduled_date, duration_min, priority, is_modified, modified_fields)
+SELECT $1, tt.template_id, tt.project_id, $3, tt.title, tt.description, $4, tt.duration_min, tt.priority, false, NULL
+FROM todo_templates tt
+WHERE tt.template_id = $2
+RETURNING todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at
+`
+
+type CreateTodoFromTemplateParams struct {
+	UserID        int32              `json:"userId"`
+	TemplateID    int32              `json:"templateId"`
+	ParentTodoID  pgtype.Int4        `json:"parentTodoId"`
+	ScheduledDate pgtype.Timestamptz `json:"scheduledDate"`
+}
+
+func (q *Queries) CreateTodoFromTemplate(ctx context.Context, arg CreateTodoFromTemplateParams) (Todo, error) {
+	row := q.db.QueryRow(ctx, createTodoFromTemplate,
+		arg.UserID,
+		arg.TemplateID,
+		arg.ParentTodoID,
+		arg.ScheduledDate,
+	)
+	var i Todo
+	err := row.Scan(
+		&i.TodoID,
+		&i.UserID,
+		&i.TemplateID,
+		&i.ProjectID,
+		&i.ParentTodoID,
+		&i.Title,
+		&i.Description,
+		&i.IsCompleted,
+		&i.ScheduledDate,
+		&i.DurationMin,
+		&i.Priority,
+		&i.IsModified,
+		&i.ModifiedFields,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CompletedAt,
+	)
+	return i, err
+}
+
+const createTodoTemplate = `-- name: CreateTodoTemplate :one
+INSERT INTO todo_templates (user_id, project_id, title, description, duration_min, priority, rrule, dtstart, until_date, is_active)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+RETURNING template_id, user_id, project_id, title, description, duration_min, priority, rrule, dtstart, until_date, is_active, created_at, updated_at
+`
+
+type CreateTodoTemplateParams struct {
+	UserID      int32              `json:"userId"`
+	ProjectID   pgtype.Int4        `json:"projectId"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	DurationMin pgtype.Int4        `json:"durationMin"`
+	Priority    pgtype.Int4        `json:"priority"`
+	Rrule       string             `json:"rrule"`
+	Dtstart     pgtype.Timestamptz `json:"dtstart"`
+	UntilDate   pgtype.Timestamptz `json:"untilDate"`
+	IsActive    pgtype.Bool        `json:"isActive"`
+}
+
+// Template-related queries
+func (q *Queries) CreateTodoTemplate(ctx context.Context, arg CreateTodoTemplateParams) (TodoTemplate, error) {
+	row := q.db.QueryRow(ctx, createTodoTemplate,
+		arg.UserID,
+		arg.ProjectID,
+		arg.Title,
+		arg.Description,
+		arg.DurationMin,
+		arg.Priority,
+		arg.Rrule,
+		arg.Dtstart,
+		arg.UntilDate,
+		arg.IsActive,
+	)
+	var i TodoTemplate
+	err := row.Scan(
+		&i.TemplateID,
+		&i.UserID,
+		&i.ProjectID,
+		&i.Title,
+		&i.Description,
+		&i.DurationMin,
+		&i.Priority,
+		&i.Rrule,
+		&i.Dtstart,
+		&i.UntilDate,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -96,8 +204,18 @@ func (q *Queries) DeleteTodo(ctx context.Context, todoID int32) error {
 	return err
 }
 
+const deleteTodoTemplate = `-- name: DeleteTodoTemplate :exec
+DELETE FROM todo_templates
+WHERE template_id = $1
+`
+
+func (q *Queries) DeleteTodoTemplate(ctx context.Context, templateID int32) error {
+	_, err := q.db.Exec(ctx, deleteTodoTemplate, templateID)
+	return err
+}
+
 const getTodo = `-- name: GetTodo :one
-SELECT todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at FROM todos
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE todo_id = $1
 `
 
@@ -107,14 +225,17 @@ func (q *Queries) GetTodo(ctx context.Context, todoID int32) (Todo, error) {
 	err := row.Scan(
 		&i.TodoID,
 		&i.UserID,
+		&i.TemplateID,
 		&i.ProjectID,
 		&i.ParentTodoID,
 		&i.Title,
 		&i.Description,
 		&i.IsCompleted,
-		&i.AssignedDate,
+		&i.ScheduledDate,
 		&i.DurationMin,
 		&i.Priority,
+		&i.IsModified,
+		&i.ModifiedFields,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CompletedAt,
@@ -122,8 +243,34 @@ func (q *Queries) GetTodo(ctx context.Context, todoID int32) (Todo, error) {
 	return i, err
 }
 
+const getTodoTemplate = `-- name: GetTodoTemplate :one
+SELECT template_id, user_id, project_id, title, description, duration_min, priority, rrule, dtstart, until_date, is_active, created_at, updated_at FROM todo_templates
+WHERE template_id = $1
+`
+
+func (q *Queries) GetTodoTemplate(ctx context.Context, templateID int32) (TodoTemplate, error) {
+	row := q.db.QueryRow(ctx, getTodoTemplate, templateID)
+	var i TodoTemplate
+	err := row.Scan(
+		&i.TemplateID,
+		&i.UserID,
+		&i.ProjectID,
+		&i.Title,
+		&i.Description,
+		&i.DurationMin,
+		&i.Priority,
+		&i.Rrule,
+		&i.Dtstart,
+		&i.UntilDate,
+		&i.IsActive,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listCompletedTodos = `-- name: ListCompletedTodos :many
-SELECT todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at FROM todos
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE user_id = $1 AND is_completed = true
 ORDER BY completed_at DESC
 `
@@ -140,14 +287,17 @@ func (q *Queries) ListCompletedTodos(ctx context.Context, userID int32) ([]Todo,
 		if err := rows.Scan(
 			&i.TodoID,
 			&i.UserID,
+			&i.TemplateID,
 			&i.ProjectID,
 			&i.ParentTodoID,
 			&i.Title,
 			&i.Description,
 			&i.IsCompleted,
-			&i.AssignedDate,
+			&i.ScheduledDate,
 			&i.DurationMin,
 			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CompletedAt,
@@ -163,7 +313,7 @@ func (q *Queries) ListCompletedTodos(ctx context.Context, userID int32) ([]Todo,
 }
 
 const listPendingTodos = `-- name: ListPendingTodos :many
-SELECT todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at FROM todos
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE user_id = $1 AND is_completed = false
 ORDER BY created_at DESC
 `
@@ -180,14 +330,17 @@ func (q *Queries) ListPendingTodos(ctx context.Context, userID int32) ([]Todo, e
 		if err := rows.Scan(
 			&i.TodoID,
 			&i.UserID,
+			&i.TemplateID,
 			&i.ProjectID,
 			&i.ParentTodoID,
 			&i.Title,
 			&i.Description,
 			&i.IsCompleted,
-			&i.AssignedDate,
+			&i.ScheduledDate,
 			&i.DurationMin,
 			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CompletedAt,
@@ -202,8 +355,48 @@ func (q *Queries) ListPendingTodos(ctx context.Context, userID int32) ([]Todo, e
 	return items, nil
 }
 
+const listTodoTemplates = `-- name: ListTodoTemplates :many
+SELECT template_id, user_id, project_id, title, description, duration_min, priority, rrule, dtstart, until_date, is_active, created_at, updated_at FROM todo_templates
+WHERE user_id = $1 AND is_active = true
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListTodoTemplates(ctx context.Context, userID int32) ([]TodoTemplate, error) {
+	rows, err := q.db.Query(ctx, listTodoTemplates, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []TodoTemplate{}
+	for rows.Next() {
+		var i TodoTemplate
+		if err := rows.Scan(
+			&i.TemplateID,
+			&i.UserID,
+			&i.ProjectID,
+			&i.Title,
+			&i.Description,
+			&i.DurationMin,
+			&i.Priority,
+			&i.Rrule,
+			&i.Dtstart,
+			&i.UntilDate,
+			&i.IsActive,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTodos = `-- name: ListTodos :many
-SELECT todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at FROM todos
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE user_id = $1
 ORDER BY created_at DESC
 `
@@ -220,14 +413,17 @@ func (q *Queries) ListTodos(ctx context.Context, userID int32) ([]Todo, error) {
 		if err := rows.Scan(
 			&i.TodoID,
 			&i.UserID,
+			&i.TemplateID,
 			&i.ProjectID,
 			&i.ParentTodoID,
 			&i.Title,
 			&i.Description,
 			&i.IsCompleted,
-			&i.AssignedDate,
+			&i.ScheduledDate,
 			&i.DurationMin,
 			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CompletedAt,
@@ -243,7 +439,7 @@ func (q *Queries) ListTodos(ctx context.Context, userID int32) ([]Todo, error) {
 }
 
 const listTodosByParent = `-- name: ListTodosByParent :many
-SELECT todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at FROM todos
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE user_id = $1 AND parent_todo_id = $2
 ORDER BY created_at DESC
 `
@@ -265,14 +461,17 @@ func (q *Queries) ListTodosByParent(ctx context.Context, arg ListTodosByParentPa
 		if err := rows.Scan(
 			&i.TodoID,
 			&i.UserID,
+			&i.TemplateID,
 			&i.ProjectID,
 			&i.ParentTodoID,
 			&i.Title,
 			&i.Description,
 			&i.IsCompleted,
-			&i.AssignedDate,
+			&i.ScheduledDate,
 			&i.DurationMin,
 			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CompletedAt,
@@ -288,7 +487,7 @@ func (q *Queries) ListTodosByParent(ctx context.Context, arg ListTodosByParentPa
 }
 
 const listTodosByProject = `-- name: ListTodosByProject :many
-SELECT todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at FROM todos
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE user_id = $1 AND project_id = $2
 ORDER BY created_at DESC
 `
@@ -310,14 +509,114 @@ func (q *Queries) ListTodosByProject(ctx context.Context, arg ListTodosByProject
 		if err := rows.Scan(
 			&i.TodoID,
 			&i.UserID,
+			&i.TemplateID,
 			&i.ProjectID,
 			&i.ParentTodoID,
 			&i.Title,
 			&i.Description,
 			&i.IsCompleted,
-			&i.AssignedDate,
+			&i.ScheduledDate,
 			&i.DurationMin,
 			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTodosByTemplate = `-- name: ListTodosByTemplate :many
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
+WHERE user_id = $1 AND template_id = $2
+ORDER BY scheduled_date DESC
+`
+
+type ListTodosByTemplateParams struct {
+	UserID     int32       `json:"userId"`
+	TemplateID pgtype.Int4 `json:"templateId"`
+}
+
+func (q *Queries) ListTodosByTemplate(ctx context.Context, arg ListTodosByTemplateParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, listTodosByTemplate, arg.UserID, arg.TemplateID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.TodoID,
+			&i.UserID,
+			&i.TemplateID,
+			&i.ProjectID,
+			&i.ParentTodoID,
+			&i.Title,
+			&i.Description,
+			&i.IsCompleted,
+			&i.ScheduledDate,
+			&i.DurationMin,
+			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTodosForDateRange = `-- name: ListTodosForDateRange :many
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
+WHERE user_id = $1 AND scheduled_date >= $2 AND scheduled_date <= $3
+ORDER BY scheduled_date ASC
+`
+
+type ListTodosForDateRangeParams struct {
+	UserID          int32              `json:"userId"`
+	ScheduledDate   pgtype.Timestamptz `json:"scheduledDate"`
+	ScheduledDate_2 pgtype.Timestamptz `json:"scheduledDate2"`
+}
+
+func (q *Queries) ListTodosForDateRange(ctx context.Context, arg ListTodosForDateRangeParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, listTodosForDateRange, arg.UserID, arg.ScheduledDate, arg.ScheduledDate_2)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.TodoID,
+			&i.UserID,
+			&i.TemplateID,
+			&i.ProjectID,
+			&i.ParentTodoID,
+			&i.Title,
+			&i.Description,
+			&i.IsCompleted,
+			&i.ScheduledDate,
+			&i.DurationMin,
+			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.CompletedAt,
@@ -336,7 +635,7 @@ const uncompleteTodo = `-- name: UncompleteTodo :one
 UPDATE todos
 SET is_completed = false
 WHERE todo_id = $1
-RETURNING todo_id, user_id, project_id, parent_todo_id, title, description, is_completed, assigned_date, duration_min, priority, created_at, updated_at, completed_at
+RETURNING todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at
 `
 
 func (q *Queries) UncompleteTodo(ctx context.Context, todoID int32) (Todo, error) {
@@ -345,14 +644,17 @@ func (q *Queries) UncompleteTodo(ctx context.Context, todoID int32) (Todo, error
 	err := row.Scan(
 		&i.TodoID,
 		&i.UserID,
+		&i.TemplateID,
 		&i.ProjectID,
 		&i.ParentTodoID,
 		&i.Title,
 		&i.Description,
 		&i.IsCompleted,
-		&i.AssignedDate,
+		&i.ScheduledDate,
 		&i.DurationMin,
 		&i.Priority,
+		&i.IsModified,
+		&i.ModifiedFields,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.CompletedAt,
@@ -362,33 +664,76 @@ func (q *Queries) UncompleteTodo(ctx context.Context, todoID int32) (Todo, error
 
 const updateTodo = `-- name: UpdateTodo :exec
 UPDATE todos
-SET project_id = $2, parent_todo_id = $3, title = $4, description = $5, assigned_date = $6, duration_min = $7, priority = $8, is_completed = $9
+SET template_id = $2, project_id = $3, parent_todo_id = $4, title = $5, description = $6, scheduled_date = $7, duration_min = $8, priority = $9, is_completed = $10, is_modified = $11, modified_fields = $12, completed_at = $13
 WHERE todo_id = $1
 `
 
 type UpdateTodoParams struct {
-	TodoID       int32              `json:"todoId"`
-	ProjectID    pgtype.Int4        `json:"projectId"`
-	ParentTodoID pgtype.Int4        `json:"parentTodoId"`
-	Title        string             `json:"title"`
-	Description  pgtype.Text        `json:"description"`
-	AssignedDate pgtype.Timestamptz `json:"assignedDate"`
-	DurationMin  pgtype.Int4        `json:"durationMin"`
-	Priority     pgtype.Int4        `json:"priority"`
-	IsCompleted  pgtype.Bool        `json:"isCompleted"`
+	TodoID         int32              `json:"todoId"`
+	TemplateID     pgtype.Int4        `json:"templateId"`
+	ProjectID      pgtype.Int4        `json:"projectId"`
+	ParentTodoID   pgtype.Int4        `json:"parentTodoId"`
+	Title          string             `json:"title"`
+	Description    pgtype.Text        `json:"description"`
+	ScheduledDate  pgtype.Timestamptz `json:"scheduledDate"`
+	DurationMin    pgtype.Int4        `json:"durationMin"`
+	Priority       pgtype.Int4        `json:"priority"`
+	IsCompleted    pgtype.Bool        `json:"isCompleted"`
+	IsModified     pgtype.Bool        `json:"isModified"`
+	ModifiedFields []byte             `json:"modifiedFields"`
+	CompletedAt    pgtype.Timestamptz `json:"completedAt"`
 }
 
 func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) error {
 	_, err := q.db.Exec(ctx, updateTodo,
 		arg.TodoID,
+		arg.TemplateID,
 		arg.ProjectID,
 		arg.ParentTodoID,
 		arg.Title,
 		arg.Description,
-		arg.AssignedDate,
+		arg.ScheduledDate,
 		arg.DurationMin,
 		arg.Priority,
 		arg.IsCompleted,
+		arg.IsModified,
+		arg.ModifiedFields,
+		arg.CompletedAt,
+	)
+	return err
+}
+
+const updateTodoTemplate = `-- name: UpdateTodoTemplate :exec
+UPDATE todo_templates
+SET project_id = $2, title = $3, description = $4, duration_min = $5, priority = $6, rrule = $7, dtstart = $8, until_date = $9, is_active = $10
+WHERE template_id = $1
+`
+
+type UpdateTodoTemplateParams struct {
+	TemplateID  int32              `json:"templateId"`
+	ProjectID   pgtype.Int4        `json:"projectId"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	DurationMin pgtype.Int4        `json:"durationMin"`
+	Priority    pgtype.Int4        `json:"priority"`
+	Rrule       string             `json:"rrule"`
+	Dtstart     pgtype.Timestamptz `json:"dtstart"`
+	UntilDate   pgtype.Timestamptz `json:"untilDate"`
+	IsActive    pgtype.Bool        `json:"isActive"`
+}
+
+func (q *Queries) UpdateTodoTemplate(ctx context.Context, arg UpdateTodoTemplateParams) error {
+	_, err := q.db.Exec(ctx, updateTodoTemplate,
+		arg.TemplateID,
+		arg.ProjectID,
+		arg.Title,
+		arg.Description,
+		arg.DurationMin,
+		arg.Priority,
+		arg.Rrule,
+		arg.Dtstart,
+		arg.UntilDate,
+		arg.IsActive,
 	)
 	return err
 }

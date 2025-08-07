@@ -1,4 +1,4 @@
-import type { Grouping, Ordering, Project, Todo } from "@/lib/types";
+import type { Project, Todo } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import {
   ArrowDownIcon,
@@ -46,10 +46,13 @@ import {
 } from "./ui/collapsible";
 import { cn } from "@/lib/utils";
 import { Card } from "./ui/card";
-import { Views, type View as CalendarView } from "react-big-calendar";
 import { TodoCalendar } from "./todo-calendar";
 import { Link } from "@tanstack/react-router";
-import { type TodoViewState } from "@/hooks/todos-view-store";
+import {
+  type Grouping,
+  type Ordering,
+  type TodoViewState,
+} from "@/hooks/todos-view-store";
 
 type TodoWithProject = Todo & {
   project?: Project;
@@ -114,7 +117,7 @@ function TodoBoard({
           completed,
           title: todo.title,
           description: todo.description,
-          assigned_date: todo.assigned_date,
+          scheduled_date: todo.scheduled_date,
           duration_minutes: todo.duration_minutes,
           parent_todo_id: todo.parent_todo_id,
           project_id: todo.project_id,
@@ -195,24 +198,24 @@ function TodoBoard({
                           {todo.project.name}
                         </span>
                       )}
-                      {todo.assigned_date && (
+                      {todo.scheduled_date && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="border rounded-sm p-0.5">
-                              {truncateDate(todo.assigned_date)}
+                              {truncateDate(todo.scheduled_date)}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
-                            {todo.assigned_date.getHours() === 0 &&
-                            todo.assigned_date.getMinutes() === 0 &&
+                            {todo.scheduled_date.getHours() === 0 &&
+                            todo.scheduled_date.getMinutes() === 0 &&
                             !todo.duration_minutes
-                              ? todo.assigned_date.toLocaleDateString()
-                              : todo.assigned_date.toLocaleTimeString()}
+                              ? todo.scheduled_date.toLocaleDateString()
+                              : todo.scheduled_date.toLocaleTimeString()}
                             {todo.duration_minutes && (
                               <span className="ml-2">
                                 -{" "}
                                 {formatTime(
-                                  todo.assigned_date,
+                                  todo.scheduled_date,
                                   todo.duration_minutes,
                                 )}
                               </span>
@@ -323,7 +326,7 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
           completed,
           title: todo.title,
           description: todo.description,
-          assigned_date: todo.assigned_date,
+          scheduled_date: todo.scheduled_date,
           duration_minutes: todo.duration_minutes,
           parent_todo_id: todo.parent_todo_id,
           project_id: todo.project_id,
@@ -369,22 +372,22 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
               {todo.project.name}
             </span>
           )}
-          {todo.assigned_date && (
+          {todo.scheduled_date && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="border rounded-sm p-0.5">
-                  {truncateDate(todo.assigned_date)}
+                  {truncateDate(todo.scheduled_date)}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                {todo.assigned_date.getHours() === 0 &&
-                todo.assigned_date.getMinutes() === 0 &&
+                {todo.scheduled_date.getHours() === 0 &&
+                todo.scheduled_date.getMinutes() === 0 &&
                 !todo.duration_minutes
-                  ? todo.assigned_date.toLocaleDateString()
-                  : todo.assigned_date.toLocaleTimeString()}
+                  ? todo.scheduled_date.toLocaleDateString()
+                  : todo.scheduled_date.toLocaleTimeString()}
                 {todo.duration_minutes && (
                   <span className="ml-2">
-                    - {formatTime(todo.assigned_date, todo.duration_minutes)}
+                    - {formatTime(todo.scheduled_date, todo.duration_minutes)}
                   </span>
                 )}
               </TooltipContent>
@@ -443,11 +446,11 @@ export default function TodosView({
 
       if (viewState.ordering === "status") {
         result = a.completed === b.completed ? 0 : a.completed ? 1 : -1;
-      } else if (viewState.ordering === "assignedDate") {
-        if (!a.assigned_date && !b.assigned_date) result = 0;
-        else if (!a.assigned_date) result = 1;
-        else if (!b.assigned_date) result = -1;
-        else result = a.assigned_date.getTime() - b.assigned_date.getTime();
+      } else if (viewState.ordering === "scheduledDate") {
+        if (!a.scheduled_date && !b.scheduled_date) result = 0;
+        else if (!a.scheduled_date) result = 1;
+        else if (!b.scheduled_date) result = -1;
+        else result = a.scheduled_date.getTime() - b.scheduled_date.getTime();
       } else {
         result = a.title.localeCompare(b.title);
       }
@@ -532,7 +535,7 @@ export default function TodosView({
                         checked={viewState.filters.showTODO}
                         className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
                         onCheckedChange={(checked) =>
-                          viewState.filters.setShowCompleted(Boolean(checked))
+                          viewState.setShowCompleted(Boolean(checked))
                         }
                       />
                       TODO
@@ -546,7 +549,7 @@ export default function TodosView({
                         checked={viewState.filters.showCompleted}
                         className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
                         onCheckedChange={(checked) =>
-                          viewState.filters.setShowCompleted(Boolean(checked))
+                          viewState.setShowCompleted(Boolean(checked))
                         }
                       />
                       Completed
@@ -569,9 +572,7 @@ export default function TodosView({
                         checked={viewState.filters.showWithNoProject}
                         className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
                         onCheckedChange={(checked) =>
-                          viewState.filters.setShowWithNoProject(
-                            Boolean(checked),
-                          )
+                          viewState.setShowWithNoProject(Boolean(checked))
                         }
                       />
                       <Box className="size-4" />
@@ -593,11 +594,9 @@ export default function TodosView({
                           onCheckedChange={(checked) => {
                             const isChecked = Boolean(checked);
                             if (isChecked) {
-                              viewState.filters.addVisibleProjectId(project.id);
+                              viewState.addVisibleProjectId(project.id);
                             } else {
-                              viewState.filters.removeVisibleProjectId(
-                                project.id,
-                              );
+                              viewState.removeVisibleProjectId(project.id);
                             }
                           }}
                         />
@@ -731,8 +730,8 @@ export default function TodosView({
                         <SelectItem className="text-xs" value="status">
                           Status
                         </SelectItem>
-                        <SelectItem className="text-xs" value="assignedDate">
-                          Assigned Date
+                        <SelectItem className="text-xs" value="scheduledDate">
+                          Scheduled Date
                         </SelectItem>
                       </SelectGroup>
                     </SelectContent>

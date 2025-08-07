@@ -11,10 +11,10 @@ interface TodoEventProps {
 
 function isAllDay(event: Todo) {
   return (
-    event.assigned_date &&
+    event.scheduled_date &&
     !event.duration_minutes &&
-    event.assigned_date.getHours() === 0 &&
-    event.assigned_date.getMinutes() === 0
+    event.scheduled_date.getHours() === 0 &&
+    event.scheduled_date.getMinutes() === 0
   );
 }
 
@@ -57,12 +57,12 @@ export function TodoEvent({
         )}
         <span>{event.title}</span>
       </div>
-      {!isAllDay(event) && event.assigned_date && (
+      {!isAllDay(event) && event.scheduled_date && (
         <div className="todo-duration">
           <Clock className="h-2 w-2" />
           <span>
             {formatTodoDuration(
-              event.assigned_date,
+              event.scheduled_date,
               event.duration_minutes || 15,
             )}
           </span>

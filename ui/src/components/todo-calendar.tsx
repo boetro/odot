@@ -30,11 +30,11 @@ export function TodoCalendar({
   const calendarEvents = useMemo((): CalendarTodo[] => {
     return todos
       .map((todo) => {
-        if (!todo.assigned_date) {
+        if (!todo.scheduled_date) {
           return null;
         }
-        const date = todo.assigned_date
-          ? new Date(todo.assigned_date)
+        const date = todo.scheduled_date
+          ? new Date(todo.scheduled_date)
           : new Date();
         const duration = todo.duration_minutes || 60; // Default 1 hour
         const endDate = new Date(date.getTime() + duration * 60 * 1000);
@@ -55,7 +55,7 @@ export function TodoCalendar({
       const backgroundColor = getTodoColor(event);
 
       // Check if event is in a different month than the current view
-      const eventMonth = event.assigned_date!.getMonth();
+      const eventMonth = event.scheduled_date!.getMonth();
       const viewMonth = date.getMonth();
       const isCurrentMonth = eventMonth === viewMonth;
 

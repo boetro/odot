@@ -17,6 +17,9 @@ type Config struct {
 	GoogleClientSecret      string
 	GoogleRedirectURI       string
 	LoginSuccessRedirectURI string
+	VAPIDPublicKey          string
+	VAPIDPrivateKey         string
+	VAPIDSubject            string
 }
 
 // Load reads configuration from environment variables
@@ -66,14 +69,33 @@ func Load() (*Config, error) {
 		loginSuccessURI = "http://localhost:5173"
 	}
 
+	vapidPublicKey := os.Getenv("VAPID_PUBLIC_KEY")
+	if vapidPublicKey == "" {
+		return nil, fmt.Errorf("VAPID_PUBLIC_KEY environment variable is required")
+	}
+
+	vapidPrivateKey := os.Getenv("VAPID_PRIVATE_KEY")
+	if vapidPrivateKey == "" {
+		return nil, fmt.Errorf("VAPID_PRIVATE_KEY environment variable is required")
+	}
+
+	vapidSubject := os.Getenv("VAPID_SUBJECT")
+	if vapidSubject == "" {
+		return nil, fmt.Errorf("VAPID_SUBJECT environment variable is required")
+	}
+
 	return &Config{
-		Port:               port,
-		LogLevel:           logLevel,
-		DatabaseURL:        dbURL,
-		Environment:        env,
-		JWTSecret:          jwtSecret,
-		GoogleClientID:     googleClientID,
-		GoogleClientSecret: googleClientSecret,
-		GoogleRedirectURI:  googleRedirectURI,
+		Port:                    port,
+		LogLevel:                logLevel,
+		DatabaseURL:             dbURL,
+		Environment:             env,
+		JWTSecret:               jwtSecret,
+		GoogleClientID:          googleClientID,
+		GoogleClientSecret:      googleClientSecret,
+		GoogleRedirectURI:       googleRedirectURI,
+		LoginSuccessRedirectURI: loginSuccessURI,
+		VAPIDPublicKey:          vapidPublicKey,
+		VAPIDPrivateKey:         vapidPrivateKey,
+		VAPIDSubject:            vapidSubject,
 	}, nil
 }

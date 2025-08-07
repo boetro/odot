@@ -1,0 +1,105 @@
+// Service Worker for Push Notifications
+
+self.addEventListener('install', (event) => {
+  console.log('Service Worker installing');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker activating');
+  event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('push', (event) => {
+  console.log('Push event received:', event);
+  
+  if (!event.data) {
+    console.log('Push event but no data');
+    return;
+  }
+
+  let notificationData;
+  try {
+    notificationData = event.data.json();
+  } catch (e) {
+    console.error('Error parsing push data:', e);
+    notificationData = {
+      title: 'New Notification',
+      body: event.data.text() || 'You have a new notification'
+    };
+  }
+
+  const options = {
+    body: notificationData.body,
+    icon: notificationData.icon || '/vite.svg',
+    badge: notificationData.badge || '/vite.svg',
+    data: notificationData.data || {},
+    actions: [
+      {
+        action: 'view',
+        title: 'View',
+        icon: '/vite.svg'
+      },
+      {
+        action: 'dismiss',
+        title: 'Dismiss'
+      }
+    ],
+    requireInteraction: false,
+    silent: false
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title || 'ODOT', options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked:', event);
+  
+  event.notification.close();
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
+  // Handle notification click
+  const urlToOpen = new URL('/', self.location.origin).href;
+  
+  event.waitUntil(
+    self.clients.matchAll({
+      type: 'window',
+      includeUncontrolled: true
+    }).then((clientList) => {
+      // Check if there's already a window/tab open with our app
+      for (const client of clientList) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      
+      // If no window/tab is open, open a new one
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+self.addEventListener('notificationclose', (event) => {
+  console.log('Notification closed:', event);
+});
+
+// Handle background sync (optional)
+self.addEventListener('sync', (event) => {
+  console.log('Background sync:', event);
+});
+
+// Handle message from main thread
+self.addEventListener('message', (event) => {
+  console.log('Message received in SW:', event.data);
+  
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});

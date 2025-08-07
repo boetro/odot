@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -25,33 +27,33 @@ func NewTodoHandler(querier db.Querier, logger logger.Logger) *TodoHandler {
 }
 
 type CreateTodoRequest struct {
-	Title        string     `json:"title" binding:"required"`
-	Description  string     `json:"description"`
-	AssignedDate *time.Time `json:"assigned_date"`
-	DurationMin  *int32     `json:"duration_minutes"`
-	ParentTodoID *int32     `json:"parent_todo_id"`
-	ProjectID    *int32     `json:"project_id"`
+	Title         string     `json:"title" binding:"required"`
+	Description   string     `json:"description"`
+	ScheduledDate *time.Time `json:"scheduled_date"`
+	DurationMin   *int32     `json:"duration_minutes"`
+	ParentTodoID  *int32     `json:"parent_todo_id"`
+	ProjectID     *int32     `json:"project_id"`
 }
 
 type UpdateTodoRequest struct {
-	Completed    bool       `json:"completed"`
-	Title        string     `json:"title" binding:"required"`
-	Description  string     `json:"description"`
-	AssignedDate *time.Time `json:"assigned_date"`
-	DurationMin  *int32     `json:"duration_minutes"`
-	ParentTodoID *int32     `json:"parent_todo_id"`
-	ProjectID    *int32     `json:"project_id"`
+	Completed     bool       `json:"completed"`
+	Title         string     `json:"title" binding:"required"`
+	Description   string     `json:"description"`
+	ScheduledDate *time.Time `json:"scheduled_date"`
+	DurationMin   *int32     `json:"duration_minutes"`
+	ParentTodoID  *int32     `json:"parent_todo_id"`
+	ProjectID     *int32     `json:"project_id"`
 }
 
 type TodoResponse struct {
-	ID           int64      `json:"id"`
-	Title        string     `json:"title"`
-	Description  *string    `json:"description"`
-	AssignedDate *time.Time `json:"assigned_date"`
-	DurationMin  *int32     `json:"duration_minutes"`
-	ParentTodoID *int32     `json:"parent_todo_id"`
-	ProjectID    *int32     `json:"project_id"`
-	Completed    bool       `json:"completed"`
+	ID            int64      `json:"id"`
+	Title         string     `json:"title"`
+	Description   *string    `json:"description"`
+	ScheduledDate *time.Time `json:"scheduled_date"`
+	DurationMin   *int32     `json:"duration_minutes"`
+	ParentTodoID  *int32     `json:"parent_todo_id"`
+	ProjectID     *int32     `json:"project_id"`
+	Completed     bool       `json:"completed"`
 }
 
 func NewTodoResponse(todo *db.Todo) *TodoResponse {
@@ -65,9 +67,9 @@ func NewTodoResponse(todo *db.Todo) *TodoResponse {
 			}
 			return nil
 		}(),
-		AssignedDate: func() *time.Time {
-			if todo.AssignedDate.Valid {
-				return &todo.AssignedDate.Time
+		ScheduledDate: func() *time.Time {
+			if todo.ScheduledDate.Valid {
+				return &todo.ScheduledDate.Time
 			}
 			return nil
 		}(),
@@ -175,14 +177,14 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		}
 	}
 
-	var assignedDate pgtype.Timestamptz
-	if req.AssignedDate != nil {
-		assignedDate = pgtype.Timestamptz{
-			Time:  *req.AssignedDate,
+	var scheduledDate pgtype.Timestamptz
+	if req.ScheduledDate != nil {
+		scheduledDate = pgtype.Timestamptz{
+			Time:  *req.ScheduledDate,
 			Valid: true,
 		}
 	} else {
-		assignedDate = pgtype.Timestamptz{
+		scheduledDate = pgtype.Timestamptz{
 			Valid: false,
 		}
 	}
@@ -200,13 +202,13 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 	}
 
 	todo, err := h.querier.CreateTodo(c, db.CreateTodoParams{
-		UserID:       userId,
-		Title:        req.Title,
-		ProjectID:    projectID,
-		Description:  description,
-		ParentTodoID: parentTodoID,
-		DurationMin:  durationMin,
-		AssignedDate: assignedDate,
+		UserID:        userId,
+		Title:         req.Title,
+		ProjectID:     projectID,
+		Description:   description,
+		ParentTodoID:  parentTodoID,
+		DurationMin:   durationMin,
+		ScheduledDate: scheduledDate,
 	})
 
 	if err != nil {
@@ -216,9 +218,49 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 
 	response := NewTodoResponse(&todo)
 
-	c.JSON(http.StatusCreated, response)
+	err = h.scheduleNotification(c, todo)
+	if err != nil {
+		h.logger.Error("Create Notification failed: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
 
+	c.JSON(http.StatusCreated, response)
 	return
+}
+
+func (h *TodoHandler) scheduleNotification(c context.Context, todo db.Todo) error {
+	if !todo.ScheduledDate.Valid {
+		fmt.Println("Skipping non valid scheduled date")
+		return nil
+	}
+
+	notificationTime := todo.ScheduledDate.Time.Add(-10 * time.Minute)
+	now := time.Now()
+	fmt.Printf("Notification time: %v\n", notificationTime)
+	fmt.Printf("Current time (now): %v\n", now)
+	if notificationTime.Before(now) {
+		fmt.Println("Skipping prior notification time")
+		return nil
+	}
+
+	_, err := h.querier.CreateNotification(c, db.CreateNotificationParams{
+		TodoID: todo.TodoID,
+		UserID: todo.UserID,
+		ScheduledFor: pgtype.Timestamptz{
+			Time:  notificationTime,
+			Valid: true,
+		},
+		NotificationType: pgtype.Text{
+			String: "scheduled-todo",
+			Valid:  true,
+		},
+	})
+
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // @Summary List user todos
@@ -384,14 +426,14 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		}
 	}
 
-	var assignedDate pgtype.Timestamptz
-	if req.AssignedDate != nil {
-		assignedDate = pgtype.Timestamptz{
-			Time:  *req.AssignedDate,
+	var scheduledDate pgtype.Timestamptz
+	if req.ScheduledDate != nil {
+		scheduledDate = pgtype.Timestamptz{
+			Time:  *req.ScheduledDate,
 			Valid: true,
 		}
 	} else {
-		assignedDate = pgtype.Timestamptz{
+		scheduledDate = pgtype.Timestamptz{
 			Valid: false,
 		}
 	}
@@ -408,18 +450,31 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		}
 	}
 
+	var completedAt pgtype.Timestamptz
+	if req.Completed {
+		completedAt = pgtype.Timestamptz{
+			Time:  time.Now(),
+			Valid: true,
+		}
+	} else {
+		completedAt = pgtype.Timestamptz{
+			Valid: false,
+		}
+	}
+
 	if err := h.querier.UpdateTodo(c, db.UpdateTodoParams{
-		TodoID:       todoId,
-		Title:        req.Title,
-		Description:  description,
-		AssignedDate: assignedDate,
-		DurationMin:  durationMin,
-		ParentTodoID: parentTodoID,
-		ProjectID:    projectID,
+		TodoID:        todoId,
+		Title:         req.Title,
+		Description:   description,
+		ScheduledDate: scheduledDate,
+		DurationMin:   durationMin,
+		ParentTodoID:  parentTodoID,
+		ProjectID:     projectID,
 		IsCompleted: pgtype.Bool{
 			Bool:  req.Completed,
 			Valid: true,
 		},
+		CompletedAt: completedAt,
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return

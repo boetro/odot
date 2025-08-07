@@ -12,23 +12,34 @@ import (
 
 type Querier interface {
 	CleanupExpiredRefreshTokens(ctx context.Context) error
+	CleanupOldSubscriptions(ctx context.Context) error
 	CompleteTodo(ctx context.Context, todoID int32) (Todo, error)
 	CreateComment(ctx context.Context, arg CreateCommentParams) (Comment, error)
+	CreateNotification(ctx context.Context, arg CreateNotificationParams) (NotificationQueue, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
+	CreatePushSubscription(ctx context.Context, arg CreatePushSubscriptionParams) (PushSubscription, error)
 	CreateRefreshToken(ctx context.Context, arg CreateRefreshTokenParams) (RefreshToken, error)
 	CreateTag(ctx context.Context, arg CreateTagParams) (Tag, error)
 	CreateTodo(ctx context.Context, arg CreateTodoParams) (Todo, error)
+	CreateTodoFromTemplate(ctx context.Context, arg CreateTodoFromTemplateParams) (Todo, error)
 	CreateTodoTag(ctx context.Context, arg CreateTodoTagParams) error
+	// Template-related queries
+	CreateTodoTemplate(ctx context.Context, arg CreateTodoTemplateParams) (TodoTemplate, error)
 	CreateUser(ctx context.Context, arg CreateUserParams) (User, error)
 	DeleteAllTagTodos(ctx context.Context, tagID int32) error
 	DeleteAllTodoTags(ctx context.Context, todoID int32) error
 	DeleteComment(ctx context.Context, commentID int32) error
+	DeleteNotification(ctx context.Context, notificationID int32) error
 	DeleteProject(ctx context.Context, projectID int32) error
+	DeletePushSubscription(ctx context.Context, arg DeletePushSubscriptionParams) error
 	DeleteTag(ctx context.Context, tagID int32) error
 	DeleteTodo(ctx context.Context, todoID int32) error
 	DeleteTodoTag(ctx context.Context, arg DeleteTodoTagParams) error
+	DeleteTodoTemplate(ctx context.Context, templateID int32) error
 	DeleteUser(ctx context.Context, userID int32) error
 	GetComment(ctx context.Context, commentID int32) (Comment, error)
+	GetNotificationsWithTodoAndSubscriptions(ctx context.Context, arg GetNotificationsWithTodoAndSubscriptionsParams) ([]GetNotificationsWithTodoAndSubscriptionsRow, error)
+	GetPendingNotifications(ctx context.Context) ([]NotificationQueue, error)
 	GetProject(ctx context.Context, projectID int32) (Project, error)
 	GetRefreshToken(ctx context.Context, tokenHash string) (RefreshToken, error)
 	GetTag(ctx context.Context, tagID int32) (Tag, error)
@@ -36,9 +47,12 @@ type Querier interface {
 	GetTagTodos(ctx context.Context, tagID int32) ([]TodoTag, error)
 	GetTodo(ctx context.Context, todoID int32) (Todo, error)
 	GetTodoTags(ctx context.Context, todoID int32) ([]TodoTag, error)
+	GetTodoTemplate(ctx context.Context, templateID int32) (TodoTemplate, error)
+	GetUnsentNotificationsInRange(ctx context.Context, arg GetUnsentNotificationsInRangeParams) ([]NotificationQueue, error)
 	GetUser(ctx context.Context, userID int32) (User, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByGoogleID(ctx context.Context, googleID pgtype.Text) (User, error)
+	GetUserPushSubscriptions(ctx context.Context, userID int32) ([]PushSubscription, error)
 	GetUserRefreshTokens(ctx context.Context, userID int32) ([]RefreshToken, error)
 	ListComments(ctx context.Context, todoID int32) ([]Comment, error)
 	ListCommentsByUser(ctx context.Context, userID int32) ([]Comment, error)
@@ -48,11 +62,16 @@ type Querier interface {
 	ListProjectsByParent(ctx context.Context, arg ListProjectsByParentParams) ([]Project, error)
 	ListTags(ctx context.Context, userID int32) ([]Tag, error)
 	ListTodoTagsByTodo(ctx context.Context, todoID int32) ([]Tag, error)
+	ListTodoTemplates(ctx context.Context, userID int32) ([]TodoTemplate, error)
 	ListTodos(ctx context.Context, userID int32) ([]Todo, error)
 	ListTodosByParent(ctx context.Context, arg ListTodosByParentParams) ([]Todo, error)
 	ListTodosByProject(ctx context.Context, arg ListTodosByProjectParams) ([]Todo, error)
 	ListTodosByTag(ctx context.Context, tagID int32) ([]Todo, error)
+	ListTodosByTemplate(ctx context.Context, arg ListTodosByTemplateParams) ([]Todo, error)
+	ListTodosForDateRange(ctx context.Context, arg ListTodosForDateRangeParams) ([]Todo, error)
 	ListUsers(ctx context.Context) ([]User, error)
+	MarkNotificationSent(ctx context.Context, notificationID int32) error
+	MarkSubscriptionInactive(ctx context.Context, arg MarkSubscriptionInactiveParams) error
 	RevokeAllUserRefreshTokens(ctx context.Context, userID int32) error
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	UncompleteTodo(ctx context.Context, todoID int32) (Todo, error)
@@ -61,6 +80,7 @@ type Querier interface {
 	UpdateRefreshTokenLastUsed(ctx context.Context, tokenHash string) error
 	UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error)
 	UpdateTodo(ctx context.Context, arg UpdateTodoParams) error
+	UpdateTodoTemplate(ctx context.Context, arg UpdateTodoTemplateParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }
 

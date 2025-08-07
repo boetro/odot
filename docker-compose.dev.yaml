@@ -91,6 +91,27 @@ services:
     restart: on-failure
     command: ["sh", "-c", "cd ui && bun install && bun run dev --host 0.0.0.0"]
 
+  notify:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile.dev
+    container_name: odot-notify-dev
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
+      - ENVIRONMENT=development
+      - LOG_LEVEL=debug
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    networks:
+      - odot-network
+    restart: always
+    command: ["sh", "-c", "while true; do go run ./cmd/notify/main.go --start $(date -u -d '1 minute ago' +\"%Y-%m-%dT%H:%M:%SZ\") --end $(date -u -d '30 seconds' +\"%Y-%m-%dT%H:%M:%SZ\"); sleep 60; done"]
+
 volumes:
   postgres_data:
 

@@ -36,6 +36,7 @@ import (
 	"github.com/boetro/odot/internal/config"
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
+	"github.com/boetro/odot/internal/webpush"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -61,6 +62,18 @@ func main() {
 
 	queries := db.New(pool)
 
+	// Initialize VAPID keys if not provided in config
+	var vapidKeys *webpush.VAPIDKeys
+	if cfg.VAPIDPublicKey != "" && cfg.VAPIDPrivateKey != "" {
+		vapidKeys = &webpush.VAPIDKeys{
+			PublicKey:  cfg.VAPIDPublicKey,
+			PrivateKey: cfg.VAPIDPrivateKey,
+		}
+	}
+
+	// Initialize webpush service
+	pushService := webpush.NewService(vapidKeys, cfg.VAPIDSubject)
+
 	// Set up Gin router
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -68,8 +81,8 @@ func main() {
 	docs.SwaggerInfo.BasePath = "/"
 
 	// Register all routes
-
-	api.RegisterRoutes(router, pool, queries, cfg, logger)
+	api.RegisterRoutes(router, pool, queries, cfg, logger, pushService)
+	// Add docs routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	// Create HTTP server

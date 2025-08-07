@@ -58,12 +58,12 @@ function RouteComponent() {
       setPendingTodo(todo);
       // Initialize temp values
       setTempDate(
-        todo.assigned_date ? new Date(todo.assigned_date) : undefined,
+        todo.scheduled_date ? new Date(todo.scheduled_date) : undefined,
       );
       setTempTime(
-        todo.assigned_date
+        todo.scheduled_date
           ? (() => {
-              const date = new Date(todo.assigned_date);
+              const date = new Date(todo.scheduled_date);
               const hours = date.getHours();
               const minutes = date.getMinutes();
               const duration = todo.duration_minutes || 0;
@@ -94,7 +94,7 @@ function RouteComponent() {
       todo.title !== toSave.title ||
       todo.description !== toSave.description ||
       todo.completed !== toSave.completed ||
-      todo.assigned_date !== toSave.assigned_date ||
+      todo.scheduled_date !== toSave.scheduled_date ||
       todo.duration_minutes !== toSave.duration_minutes ||
       todo.project_id !== toSave.project_id
     );
@@ -192,18 +192,18 @@ function RouteComponent() {
               onClose={() => {
                 if (pendingTodo) {
                   // Apply temp changes to pendingTodo and save
-                  let newAssignedDate: Date | null = null;
+                  let newScheduledDate: Date | null = null;
                   if (tempDate) {
-                    newAssignedDate = new Date(tempDate);
+                    newScheduledDate = new Date(tempDate);
                     if (tempTime) {
                       const [hours, minutes] = tempTime.split(":").map(Number);
-                      newAssignedDate.setHours(hours, minutes, 0, 0);
+                      newScheduledDate.setHours(hours, minutes, 0, 0);
                     }
                   }
 
                   const newTodo = {
                     ...pendingTodo,
-                    assigned_date: newAssignedDate,
+                    scheduled_date: newScheduledDate,
                     duration_minutes: tempDuration
                       ? parseInt(tempDuration)
                       : null,

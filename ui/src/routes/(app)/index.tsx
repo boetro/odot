@@ -20,16 +20,18 @@ function Index() {
   );
 
   return (
-    <div className="h-full w-full">
-      {todosLoading || projectsLoading ? (
-        <div>Loading...</div>
-      ) : (
-        <TodosView
-          todos={todos || []}
-          projects={projects || []}
-          useTodoView={useTodoView}
-        />
-      )}
+    <div className="h-full w-full flex flex-col gap-4 p-4">
+      <div className="flex-1">
+        {todosLoading || projectsLoading ? (
+          <div>Loading...</div>
+        ) : (
+          <TodosView
+            todos={todos || []}
+            projects={projects || []}
+            useTodoView={useTodoView}
+          />
+        )}
+      </div>
     </div>
   );
 }

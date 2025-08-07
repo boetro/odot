@@ -16,8 +16,6 @@ definitions:
     type: object
   handlers.CreateTodoRequest:
     properties:
-      assigned_date:
-        type: string
       description:
         type: string
       duration_minutes:
@@ -26,6 +24,8 @@ definitions:
         type: integer
       project_id:
         type: integer
+      scheduled_date:
+        type: string
       title:
         type: string
     required:
@@ -106,12 +106,50 @@ definitions:
     required:
     - refresh_token
     type: object
+  handlers.SendNotificationRequest:
+    properties:
+      badge:
+        type: string
+      body:
+        type: string
+      data: {}
+      icon:
+        type: string
+      title:
+        type: string
+      user_ids:
+        description: If empty, send to current user
+        items:
+          type: integer
+        type: array
+    required:
+    - body
+    - title
+    type: object
+  handlers.SubscribeRequest:
+    properties:
+      endpoint:
+        type: string
+      keys:
+        properties:
+          auth:
+            type: string
+          p256dh:
+            type: string
+        required:
+        - auth
+        - p256dh
+        type: object
+    required:
+    - endpoint
+    - keys
+    type: object
   handlers.TodoResponse:
     properties:
-      assigned_date:
-        type: string
       completed:
         type: boolean
+      description:
+        type: string
       duration_minutes:
         type: integer
       id:
@@ -120,6 +158,8 @@ definitions:
         type: integer
       project_id:
         type: integer
+      scheduled_date:
+        type: string
       title:
         type: string
     type: object
@@ -136,8 +176,6 @@ definitions:
     type: object
   handlers.UpdateTodoRequest:
     properties:
-      assigned_date:
-        type: string
       completed:
         type: boolean
       description:
@@ -148,6 +186,8 @@ definitions:
         type: integer
       project_id:
         type: integer
+      scheduled_date:
+        type: string
       title:
         type: string
     required:
@@ -370,6 +410,94 @@ paths:
       summary: Create a new project
       tags:
       - projects
+  /push/send:
+    post:
+      consumes:
+      - application/json
+      description: Send a push notification to specified users or current user
+      parameters:
+      - description: Notification details
+        in: body
+        name: notification
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SendNotificationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Send push notification
+      tags:
+      - push
+  /push/subscribe:
+    post:
+      consumes:
+      - application/json
+      description: Subscribe the current user to push notifications
+      parameters:
+      - description: Push subscription details
+        in: body
+        name: subscription
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.SubscribeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Subscribe to push notifications
+      tags:
+      - push
+  /push/vapid-public-key:
+    get:
+      description: Get the VAPID public key needed for push subscription
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get VAPID public key
+      tags:
+      - push
   /todos:
     get:
       description: Retrieves all todos for the authenticated user, optionally filtered
@@ -445,6 +573,46 @@ paths:
       tags:
       - todos
   /todos/{todoId}:
+    get:
+      description: Retrieves a specific todo by ID for the authenticated user.
+      parameters:
+      - description: Todo ID
+        in: path
+        name: todoId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.TodoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get a specific todo
+      tags:
+      - todos
     put:
       consumes:
       - application/json

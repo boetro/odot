@@ -17,6 +17,16 @@ type Comment struct {
 	UpdatedAt pgtype.Timestamptz `json:"updatedAt"`
 }
 
+type NotificationQueue struct {
+	NotificationID   int32              `json:"notificationId"`
+	TodoID           int32              `json:"todoId"`
+	UserID           int32              `json:"userId"`
+	ScheduledFor     pgtype.Timestamptz `json:"scheduledFor"`
+	NotificationType pgtype.Text        `json:"notificationType"`
+	Sent             pgtype.Bool        `json:"sent"`
+	CreatedAt        pgtype.Timestamptz `json:"createdAt"`
+}
+
 type Project struct {
 	ProjectID       int32              `json:"projectId"`
 	UserID          int32              `json:"userId"`
@@ -26,6 +36,17 @@ type Project struct {
 	Color           pgtype.Text        `json:"color"`
 	CreatedAt       pgtype.Timestamptz `json:"createdAt"`
 	UpdatedAt       pgtype.Timestamptz `json:"updatedAt"`
+}
+
+type PushSubscription struct {
+	ID        int32              `json:"id"`
+	UserID    int32              `json:"userId"`
+	Endpoint  string             `json:"endpoint"`
+	P256dhKey string             `json:"p256dhKey"`
+	AuthKey   string             `json:"authKey"`
+	CreatedAt pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt pgtype.Timestamptz `json:"updatedAt"`
+	IsActive  pgtype.Bool        `json:"isActive"`
 }
 
 type RefreshToken struct {
@@ -46,25 +67,49 @@ type Tag struct {
 	CreatedAt pgtype.Timestamptz `json:"createdAt"`
 }
 
+type TemplateTag struct {
+	TemplateID int32 `json:"templateId"`
+	TagID      int32 `json:"tagId"`
+}
+
 type Todo struct {
-	TodoID       int32              `json:"todoId"`
-	UserID       int32              `json:"userId"`
-	ProjectID    pgtype.Int4        `json:"projectId"`
-	ParentTodoID pgtype.Int4        `json:"parentTodoId"`
-	Title        string             `json:"title"`
-	Description  pgtype.Text        `json:"description"`
-	IsCompleted  pgtype.Bool        `json:"isCompleted"`
-	AssignedDate pgtype.Timestamptz `json:"assignedDate"`
-	DurationMin  pgtype.Int4        `json:"durationMin"`
-	Priority     pgtype.Int4        `json:"priority"`
-	CreatedAt    pgtype.Timestamptz `json:"createdAt"`
-	UpdatedAt    pgtype.Timestamptz `json:"updatedAt"`
-	CompletedAt  pgtype.Timestamptz `json:"completedAt"`
+	TodoID         int32              `json:"todoId"`
+	UserID         int32              `json:"userId"`
+	TemplateID     pgtype.Int4        `json:"templateId"`
+	ProjectID      pgtype.Int4        `json:"projectId"`
+	ParentTodoID   pgtype.Int4        `json:"parentTodoId"`
+	Title          string             `json:"title"`
+	Description    pgtype.Text        `json:"description"`
+	IsCompleted    pgtype.Bool        `json:"isCompleted"`
+	ScheduledDate  pgtype.Timestamptz `json:"scheduledDate"`
+	DurationMin    pgtype.Int4        `json:"durationMin"`
+	Priority       pgtype.Int4        `json:"priority"`
+	IsModified     pgtype.Bool        `json:"isModified"`
+	ModifiedFields []byte             `json:"modifiedFields"`
+	CreatedAt      pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt      pgtype.Timestamptz `json:"updatedAt"`
+	CompletedAt    pgtype.Timestamptz `json:"completedAt"`
 }
 
 type TodoTag struct {
 	TodoID int32 `json:"todoId"`
 	TagID  int32 `json:"tagId"`
+}
+
+type TodoTemplate struct {
+	TemplateID  int32              `json:"templateId"`
+	UserID      int32              `json:"userId"`
+	ProjectID   pgtype.Int4        `json:"projectId"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	DurationMin pgtype.Int4        `json:"durationMin"`
+	Priority    pgtype.Int4        `json:"priority"`
+	Rrule       string             `json:"rrule"`
+	Dtstart     pgtype.Timestamptz `json:"dtstart"`
+	UntilDate   pgtype.Timestamptz `json:"untilDate"`
+	IsActive    pgtype.Bool        `json:"isActive"`
+	CreatedAt   pgtype.Timestamptz `json:"createdAt"`
+	UpdatedAt   pgtype.Timestamptz `json:"updatedAt"`
 }
 
 type User struct {

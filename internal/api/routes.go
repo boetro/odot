@@ -7,13 +7,14 @@ import (
 	"github.com/boetro/odot/internal/config"
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
+	"github.com/boetro/odot/internal/webpush"
 	"github.com/boetro/odot/ui"
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // RegisterRoutes sets up all API route
-func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, cfg *config.Config, logger logger.Logger) {
+func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, cfg *config.Config, logger logger.Logger, pushService *webpush.Service) {
 	// Add common middleware
 	r.Use(middleware.RequestLogger(logger))
 	r.Use(middleware.CORS())
@@ -58,6 +59,15 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 			protected.POST("/todos", todoHandler.CreateTodo)
 			protected.PUT("/todos/:todoId", todoHandler.UpdateTodo)
 			protected.GET("/todos/:todoId", todoHandler.GetTodo)
+		}
+		// Push notification handler
+		{
+			pushHandler := handlers.NewPushHandler(querier, logger, pushService)
+			// Public endpoint for VAPID key
+			api.GET("/push/vapid-public-key", pushHandler.GetVAPIDPublicKey)
+			// Protected endpoints
+			protected.POST("/push/subscribe", pushHandler.Subscribe)
+			protected.POST("/push/send", pushHandler.SendNotification)
 		}
 	}
 }
