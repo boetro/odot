@@ -53,11 +53,18 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -o bin/server \
     ./cmd/server
 
+# Build the notify binary
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
+    -ldflags='-w -s -extldflags "-static"' \
+    -o bin/notify \
+    ./cmd/notify
+
 # Production stage
 FROM gcr.io/distroless/static-debian12:nonroot
 
-# Copy the binary from go-builder stage
+# Copy the binaries from go-builder stage
 COPY --from=go-builder /app/bin/server /server
+COPY --from=go-builder /app/bin/notify /notify
 
 # Copy goose binary for migrations
 COPY --from=go-builder /go/bin/goose /usr/local/bin/goose
