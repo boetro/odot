@@ -40,11 +40,6 @@ class PushNotificationService {
     }
 
     try {
-      // Register service worker
-      const registration = await navigator.serviceWorker.register("/sw.js", {
-        scope: "/",
-      });
-
       // Wait for service worker to be ready
       await navigator.serviceWorker.ready;
 
