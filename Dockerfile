@@ -30,8 +30,8 @@ WORKDIR /app
 # Copy dependency files first for better layer caching
 COPY go.mod go.sum ./
 
-# Download dependencies
-RUN go mod download && go mod verify
+# Download dependencies with cache mount
+RUN --mount=type=cache,target=/go/pkg/mod go mod download && go mod verify
 
 # Install goose binary directly (much faster than go install)
 RUN curl -fsSL https://github.com/pressly/goose/releases/latest/download/goose_linux_arm64 -o /tmp/goose && \
@@ -48,13 +48,15 @@ COPY --from=ui-builder /app/ui/dist ./ui/dist
 # Use build args for target platform instead of hardcoded values
 ARG TARGETOS=linux
 ARG TARGETARCH=arm64
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -ldflags='-w -s -extldflags "-static"' \
     -o bin/server \
     ./cmd/server
 
 # Build the notify binary
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -ldflags='-w -s -extldflags "-static"' \
     -o bin/notify \
     ./cmd/notify
