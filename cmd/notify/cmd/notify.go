@@ -22,16 +22,28 @@ func newRootCmd(ctx context.Context, queries db.Querier, pushService *webpush.Se
 			startStr, _ := cmd.Flags().GetString("start")
 			endStr, _ := cmd.Flags().GetString("end")
 
-			start, err := time.Parse(time.RFC3339, startStr)
-			if err != nil {
-				fmt.Printf("Error parsing start time: %v\n", err)
-				return
+			now := time.Now()
+			var start, end time.Time
+			var err error
+
+			if startStr == "" {
+				start = now.Add(-time.Minute)
+			} else {
+				start, err = time.Parse(time.RFC3339, startStr)
+				if err != nil {
+					fmt.Printf("Error parsing start time: %v\n", err)
+					return
+				}
 			}
 
-			end, err := time.Parse(time.RFC3339, endStr)
-			if err != nil {
-				fmt.Printf("Error parsing end time: %v\n", err)
-				return
+			if endStr == "" {
+				end = now.Add(time.Minute)
+			} else {
+				end, err = time.Parse(time.RFC3339, endStr)
+				if err != nil {
+					fmt.Printf("Error parsing end time: %v\n", err)
+					return
+				}
 			}
 
 			fmt.Printf("Start time: %s\n", start.Format(time.RFC3339))
@@ -91,10 +103,8 @@ func newRootCmd(ctx context.Context, queries db.Querier, pushService *webpush.Se
 func Execute(c context.Context, querier db.Querier, pushService *webpush.Service) {
 	rootCmd = newRootCmd(c, querier, pushService)
 
-	rootCmd.PersistentFlags().StringP("start", "s", "", "Start time for notification range (RFC3339 format)")
-	rootCmd.PersistentFlags().StringP("end", "e", "", "End time for notification range (RFC3339 format)")
-	rootCmd.MarkFlagRequired("start")
-	rootCmd.MarkFlagRequired("end")
+	rootCmd.PersistentFlags().StringP("start", "s", "", "Start time for notification range (RFC3339 format, defaults to 1 minute ago)")
+	rootCmd.PersistentFlags().StringP("end", "e", "", "End time for notification range (RFC3339 format, defaults to 1 minute from now)")
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
