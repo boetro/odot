@@ -1,6 +1,5 @@
 import {
   Box,
-  Check,
   ChevronRight,
   CirclePlus,
   Home,
@@ -72,9 +71,7 @@ export function AppSidebar({
     projectQueries.listProjects(),
   );
 
-  const { data: todos, isLoading: todosLoading } = useQuery(
-    todoQueries.listUserTodos(),
-  );
+  const { data: todos } = useQuery(todoQueries.listUserTodos());
 
   useEffect(() => {
     if (projects) {

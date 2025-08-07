@@ -1,0 +1,15 @@
+{
+  "name": "odot",
+  "short_name": "odot",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#222222",
+  "theme_color": "#40b1b6",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "sizes": "400x400",
+      "type": "image/svg"
+    }
+  ]
+}

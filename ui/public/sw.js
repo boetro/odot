@@ -1,8 +1,19 @@
-// Service Worker for Push Notifications
+const CACHE_NAME = "odot-app-v1";
 
 self.addEventListener("install", (event) => {
-  console.log("Service Worker installing");
-  self.skipWaiting();
+  // Add caching during install
+  event.waitUntil(
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => {
+        return cache.addAll([
+          "/",
+          "/manifest.json",
+          "/logo.svg", // App icon referenced in manifest
+        ]);
+      })
+      .then(() => self.skipWaiting()),
+  );
 });
 
 self.addEventListener("activate", (event) => {
@@ -107,4 +118,45 @@ self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+});
+
+self.addEventListener("fetch", (event) => {
+  // Only cache GET requests
+  if (event.request.method !== "GET") {
+    return;
+  }
+
+  event.respondWith(
+    caches
+      .match(event.request)
+      .then((response) => {
+        // Return cached version or fetch from network
+        return (
+          response ||
+          fetch(event.request).then((fetchResponse) => {
+            // Cache JS/CSS assets and other static resources
+            if (fetchResponse.ok && (
+              event.request.url.includes('/assets/') ||
+              event.request.url.endsWith('.js') ||
+              event.request.url.endsWith('.css') ||
+              event.request.url.endsWith('.svg') ||
+              event.request.url.endsWith('.png') ||
+              event.request.url.endsWith('.jpg')
+            )) {
+              const responseClone = fetchResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
+            return fetchResponse;
+          })
+        );
+      })
+      .catch(() => {
+        // Fallback for offline - return cached main page for navigation requests
+        if (event.request.mode === "navigate") {
+          return caches.match("/");
+        }
+      }),
+  );
 });
