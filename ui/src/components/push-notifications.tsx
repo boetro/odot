@@ -92,7 +92,7 @@ export function PushNotifications() {
       const payload: NotificationPayload = {
         title: "Test Notification",
         body: "This is a test notification from ODOT!",
-        icon: "/vite.svg",
+        icon: "/logo.svg",
         data: { test: true },
       };
 

@@ -112,10 +112,12 @@ export function AppSidebar({
                 asChild
                 className="data-[slot=sidebar-menu-button]:!p-1.5"
               >
-                <Link to="/">
-                  <div className="bg-primary rounded-full size-5 flex justify-center items-center">
-                    <Check className="text-white dark:text-slate-800 size-5" />
-                  </div>
+                <Link to="/" className="flex items-center gap-3">
+                  <img
+                    src="/logo.svg"
+                    alt="Logo"
+                    className="size-4 mt-[2.5px]"
+                  />
                   <span className="font-semibold text-lg">odot</span>
                 </Link>
               </SidebarMenuButton>
