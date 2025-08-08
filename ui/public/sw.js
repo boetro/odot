@@ -78,8 +78,13 @@ self.addEventListener("notificationclick", (event) => {
     return;
   }
 
+  let url = "/";
+  if (event.notification.data.todoId) {
+    url = `/todos/${event.notification.data.todoId}`;
+  }
+
   // Handle notification click
-  const urlToOpen = new URL("/", self.location.origin).href;
+  const urlToOpen = new URL(url).href;
 
   event.waitUntil(
     self.clients

@@ -13,7 +13,6 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-scripts:/docker-entrypoint-initdb.d
     networks:
       - odot-network
     healthcheck:
@@ -110,7 +109,12 @@ services:
     networks:
       - odot-network
     restart: always
-    command: ["sh", "-c", "while true; do go run ./cmd/notify/main.go --start $(date -u -d '1 minute ago' +\"%Y-%m-%dT%H:%M:%SZ\") --end $(date -u -d '30 seconds' +\"%Y-%m-%dT%H:%M:%SZ\"); sleep 60; done"]
+    command:
+      [
+        "sh",
+        "-c",
+        'while true; do go run ./cmd/notify/main.go --start $(date -u -d ''1 minute ago'' +"%Y-%m-%dT%H:%M:%SZ") --end $(date -u -d ''30 seconds'' +"%Y-%m-%dT%H:%M:%SZ"); sleep 60; done',
+      ]
 
 volumes:
   postgres_data:

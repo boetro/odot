@@ -17,11 +17,13 @@ import {
   BreadcrumbSeparator,
 } from "./ui/breadcrumb";
 
-import { Box } from "lucide-react";
+import { Box, Plus } from "lucide-react";
 import { todoQueries } from "@/lib/queries/todos";
 import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
 import { pushNotificationService } from "../lib/push-notifications";
+import { Button } from "./ui/button";
+import { NewTodoDialog } from "./new-todo-dialog";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthRequired();
@@ -36,6 +38,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isSubscriptionLoading, setIsSubscriptionLoading] = useState(false);
   const [permission, setPermission] =
     useState<NotificationPermission>("default");
+  const [newTodoOpen, setNewTodoOpen] = useState(false);
 
   const initializePushNotifications = async () => {
     setIsSupported(pushNotificationService.supported);
@@ -143,66 +146,81 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <SidebarProvider>
       <AppSidebar user={user} />
       <SidebarInset className="border h-full-w-full overflow-hidden">
-        <div className="pl-1 py-1 border-b flex space-x-2 items-center">
-          <SidebarTrigger />
-          <Breadcrumb>
-            <BreadcrumbList>
-              {location.pathname === "/" && (
-                <BreadcrumbItem>
-                  <BreadcrumbPage>Home</BreadcrumbPage>
-                </BreadcrumbItem>
-              )}
-              {location.pathname.startsWith("/projects") && selectedProject && (
-                <BreadcrumbItem>
-                  <BreadcrumbPage className="flex gap-2 items-center">
-                    <Box
-                      className="size-4"
-                      style={{ color: selectedProject.color }}
-                    />
-                    {selectedProject.name}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              )}
-              {location.pathname.startsWith("/todos") &&
-                selectedTodo &&
-                !selectedTodoLoading && (
-                  <>
-                    {selectedProject && (
-                      <>
-                        <BreadcrumbItem>
-                          <BreadcrumbLink asChild>
-                            <Link
-                              className="flex gap-2 items-center truncate"
-                              to="/projects/$projectId"
-                              params={{
-                                projectId: selectedProject.id.toString(),
-                              }}
-                            >
-                              <Box
-                                className="size-4"
-                                style={{ color: selectedProject.color }}
-                              />
-                              {selectedProject.name}
-                            </Link>
-                          </BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                      </>
-                    )}
+        <div className="flex justify-between border-b">
+          <div className="pl-1 py-1 flex space-x-2 items-center">
+            <SidebarTrigger />
+            <Breadcrumb>
+              <BreadcrumbList>
+                {location.pathname === "/" && (
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>Home</BreadcrumbPage>
+                  </BreadcrumbItem>
+                )}
+                {location.pathname.startsWith("/projects") &&
+                  selectedProject && (
                     <BreadcrumbItem>
-                      <BreadcrumbPage className="truncate">
-                        {selectedTodo.title}
+                      <BreadcrumbPage className="flex gap-2 items-center">
+                        <Box
+                          className="size-4"
+                          style={{ color: selectedProject.color }}
+                        />
+                        {selectedProject.name}
                       </BreadcrumbPage>
                     </BreadcrumbItem>
-                  </>
-                )}
-            </BreadcrumbList>
-          </Breadcrumb>
+                  )}
+                {location.pathname.startsWith("/todos") &&
+                  selectedTodo &&
+                  !selectedTodoLoading && (
+                    <>
+                      {selectedProject && (
+                        <>
+                          <BreadcrumbItem>
+                            <BreadcrumbLink asChild>
+                              <Link
+                                className="flex gap-2 items-center truncate"
+                                to="/projects/$projectId"
+                                params={{
+                                  projectId: selectedProject.id.toString(),
+                                }}
+                              >
+                                <Box
+                                  className="size-4"
+                                  style={{ color: selectedProject.color }}
+                                />
+                                {selectedProject.name}
+                              </Link>
+                            </BreadcrumbLink>
+                          </BreadcrumbItem>
+                          <BreadcrumbSeparator />
+                        </>
+                      )}
+                      <BreadcrumbItem>
+                        <BreadcrumbPage className="truncate">
+                          {selectedTodo.title}
+                        </BreadcrumbPage>
+                      </BreadcrumbItem>
+                    </>
+                  )}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
+          <Button
+            size="icon"
+            className="flex md:hidden p-0 m-3 size-6"
+            onClick={() => setNewTodoOpen(true)}
+          >
+            <Plus />
+          </Button>
         </div>
         <div className="w-full h-[calc(100vh-55px)] overflow-hidden">
           {children}
         </div>
       </SidebarInset>
+      <NewTodoDialog
+        open={newTodoOpen}
+        setOpen={setNewTodoOpen}
+        projects={projects || []}
+      />
     </SidebarProvider>
   );
 }

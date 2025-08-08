@@ -89,6 +89,9 @@ func newRootCmd(ctx context.Context, queries db.Querier, pushService *webpush.Se
 				}, &webpush.NotificationPayload{
 					Title: notify.TodoTitle,
 					Body:  notify.TodoDescription.String,
+					Data: map[string]interface{}{
+						"todoId": notify.TodoID,
+					},
 				})
 
 				err := queries.MarkNotificationSent(ctx, notify.NotificationID)

@@ -173,7 +173,7 @@ export function NewTodoDialog({
       }}
     >
       <DialogContent
-        className="sm:max-w-[60%] p-0 pt-4"
+        className="sm:max-w-[60%] p-0 pt-4 top-[25%] md:top-[50%]"
         showCloseButton={false}
         aria-describedby="Create new TODO dialog"
       >
