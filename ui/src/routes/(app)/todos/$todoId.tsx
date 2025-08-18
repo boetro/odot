@@ -166,6 +166,9 @@ function RouteComponent() {
                   onKeyDown={handleDescriptionKeyDown}
                   onBlur={() => {
                     handleSave(pendingTodo);
+                    console.log(
+                      "DO NOT SUBMIT: setting editing description to false",
+                    );
                     setIsEditingDescription(false);
                   }}
                   placeholder="Add a description..."

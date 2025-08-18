@@ -3,10 +3,12 @@ package ui
 import (
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
@@ -26,6 +28,28 @@ func AddRoutes(router gin.IRouter) {
 
 	embeddedDistFolder := newStaticFileSystem()
 	router.Use(static.Serve("/", embeddedDistFolder))
+	
+	// SPA fallback: serve index.html for all routes that don't match static files or API routes
+	router.NoRoute(func(c *gin.Context) {
+		// Don't serve index.html for API routes or other backend routes
+		if strings.HasPrefix(c.Request.URL.Path, "/api") ||
+		   strings.HasPrefix(c.Request.URL.Path, "/health") ||
+		   strings.HasPrefix(c.Request.URL.Path, "/swagger") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Route not found"})
+			return
+		}
+		
+		// For all other routes, serve index.html to let React Router handle it
+		indexFile, err := staticFS.Open("dist/index.html")
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not serve index.html"})
+			return
+		}
+		defer indexFile.Close()
+		
+		c.Header("Content-Type", "text/html; charset=utf-8")
+		http.ServeContent(c.Writer, c.Request, "index.html", time.Time{}, indexFile.(io.ReadSeeker))
+	})
 }
 
 // ----------------------------------------------------------------------
