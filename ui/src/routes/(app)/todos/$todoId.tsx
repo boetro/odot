@@ -178,7 +178,7 @@ function RouteComponent() {
                   onClick={() => setIsEditingDescription(true)}
                 >
                   {pendingTodo?.description ? (
-                    <div className="prose max-w-none dark:prose-invert [&_li:has([data-slot=checkbox])]:flex [&_li:has([data-slot=checkbox])]:items-center [&_li_button[data-slot=checkbox]]:mr-2 [&_li_p_button[data-slot=checkbox]]:inline-flex [&_li_p_button[data-slot=checkbox]]:items-center [&_li_p_button[data-slot=checkbox]]:justify-center [&_li_p_button[data-slot=checkbox]]:min-h-4 [&_li:has([data-slot=checkbox])]:list-none [&_li_p]:m-0 [&_li:has([data-slot=checkbox])]:-ml-6">
+                    <div className="prose-sm max-w-none dark:prose-invert [&_li:has([data-slot=checkbox])]:flex [&_li:has([data-slot=checkbox])]:items-center [&_li_button[data-slot=checkbox]]:mr-2 [&_li_p_button[data-slot=checkbox]]:inline-flex [&_li_p_button[data-slot=checkbox]]:items-center [&_li_p_button[data-slot=checkbox]]:justify-center [&_li_p_button[data-slot=checkbox]]:min-h-4 [&_li:has([data-slot=checkbox])]:list-none [&_li_p]:m-0 [&_li:has([data-slot=checkbox])]:-ml-6">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
