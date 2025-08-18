@@ -178,7 +178,7 @@ function RouteComponent() {
                   onClick={() => setIsEditingDescription(true)}
                 >
                   {pendingTodo?.description ? (
-                    <div className="prose max-w-none dark:prose-invert [&_li:has([data-slot=checkbox])]:flex [&_li:has([data-slot=checkbox])]:items-center [&_li:has([data-slot=checkbox])]:gap-2 [&_li:has([data-slot=checkbox])]:list-none [&_li_p]:m-0">
+                    <div className="prose max-w-none dark:prose-invert [&_li:has([data-slot=checkbox])]:flex [&_li:has([data-slot=checkbox])]:items-center [&_li_p_button[data-slot=checkbox]]:mr-1 [&_li:has([data-slot=checkbox])]:list-none [&_li_p]:m-0 [&_li:has([data-slot=checkbox])]:-ml-6">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -188,58 +188,6 @@ function RouteComponent() {
                               defaultChecked={checked}
                               onClick={(e) => e.stopPropagation()}
                             />
-                            // <input
-                            //   {...props}
-                            //   type="checkbox"
-                            //   checked={checked}
-                            //   disabled={false}
-                            //   onChange={(e) => {
-                            //     e.stopPropagation();
-                            //     if (pendingTodo?.description) {
-                            //       const lines =
-                            //         pendingTodo.description.split("\n");
-                            //       const target = e.target as HTMLInputElement;
-                            //       const listItem = target.closest("li");
-                            //       if (listItem) {
-                            //         const allCheckboxes =
-                            //           document.querySelectorAll(
-                            //             'input[type="checkbox"]',
-                            //           );
-                            //         const checkboxIndex =
-                            //           Array.from(allCheckboxes).indexOf(target);
-                            //         let currentCheckboxIndex = 0;
-
-                            //         const updatedLines = lines.map((line) => {
-                            //           if (line.match(/^\s*[-*+]\s*\[[ x]\]/)) {
-                            //             if (
-                            //               currentCheckboxIndex === checkboxIndex
-                            //             ) {
-                            //               const newState = target.checked
-                            //                 ? "x"
-                            //                 : " ";
-                            //               return line.replace(
-                            //                 /\[[ x]\]/,
-                            //                 `[${newState}]`,
-                            //               );
-                            //             }
-                            //             currentCheckboxIndex++;
-                            //           }
-                            //           return line;
-                            //         });
-
-                            //         const newDescription =
-                            //           updatedLines.join("\n");
-                            //         const newTodo = {
-                            //           ...pendingTodo,
-                            //           description: newDescription,
-                            //         };
-                            //         setPendingTodo(newTodo);
-                            //         handleSave(newTodo);
-                            //       }
-                            //     }
-                            //   }}
-                            //   onClick={(e) => e.stopPropagation()}
-                            // />
                           ),
                         }}
                       >
