@@ -28,9 +28,18 @@ func AddRoutes(router gin.IRouter) {
 
 	embeddedDistFolder := newStaticFileSystem()
 	router.Use(static.Serve("/", embeddedDistFolder))
+}
+
+// SetupSPAFallback configures the SPA fallback route for serving index.html
+// This must be called on the main gin.Engine after all other routes are set up
+func SetupSPAFallback(engine *gin.Engine) {
+	// Skip in development
+	if os.Getenv("ENVIRONMENT") == "development" {
+		return
+	}
 	
 	// SPA fallback: serve index.html for all routes that don't match static files or API routes
-	router.NoRoute(func(c *gin.Context) {
+	engine.NoRoute(func(c *gin.Context) {
 		// Don't serve index.html for API routes or other backend routes
 		if strings.HasPrefix(c.Request.URL.Path, "/api") ||
 		   strings.HasPrefix(c.Request.URL.Path, "/health") ||

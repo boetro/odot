@@ -37,6 +37,7 @@ import (
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
 	"github.com/boetro/odot/internal/webpush"
+	"github.com/boetro/odot/ui"
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -84,6 +85,8 @@ func main() {
 	api.RegisterRoutes(router, pool, queries, cfg, logger, pushService)
 	// Add docs routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	// Setup SPA fallback (must be last)
+	ui.SetupSPAFallback(router)
 
 	// Create HTTP server
 	srv := &http.Server{
