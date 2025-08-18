@@ -244,22 +244,39 @@ func (h *TodoHandler) scheduleNotification(c context.Context, todo db.Todo) erro
 		return nil
 	}
 
-	_, err := h.querier.CreateNotification(c, db.CreateNotificationParams{
+	// Try to update existing unsent notification first
+	rowsAffected, err := h.querier.UpdateNotificationSchedule(c, db.UpdateNotificationScheduleParams{
 		TodoID: todo.TodoID,
-		UserID: todo.UserID,
 		ScheduledFor: pgtype.Timestamptz{
 			Time:  notificationTime,
 			Valid: true,
-		},
-		NotificationType: pgtype.Text{
-			String: "scheduled-todo",
-			Valid:  true,
 		},
 	})
 
 	if err != nil {
 		return err
 	}
+
+	// If no existing notification was updated, create a new one
+	if rowsAffected == 0 {
+		_, err := h.querier.CreateNotification(c, db.CreateNotificationParams{
+			TodoID: todo.TodoID,
+			UserID: todo.UserID,
+			ScheduledFor: pgtype.Timestamptz{
+				Time:  notificationTime,
+				Valid: true,
+			},
+			NotificationType: pgtype.Text{
+				String: "scheduled-todo",
+				Valid:  true,
+			},
+		})
+
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -462,7 +479,7 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		}
 	}
 
-	if err := h.querier.UpdateTodo(c, db.UpdateTodoParams{
+	dbTodo, err := h.querier.UpdateTodo(c, db.UpdateTodoParams{
 		TodoID:        todoId,
 		Title:         req.Title,
 		Description:   description,
@@ -475,7 +492,17 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 			Valid: true,
 		},
 		CompletedAt: completedAt,
-	}); err != nil {
+	})
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	err = h.scheduleNotification(c, dbTodo)
+
+	if err != nil {
+		h.logger.Error("Failed to schedule notification", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
 		return
 	}

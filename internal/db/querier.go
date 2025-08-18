@@ -76,10 +76,11 @@ type Querier interface {
 	RevokeRefreshToken(ctx context.Context, tokenHash string) error
 	UncompleteTodo(ctx context.Context, todoID int32) (Todo, error)
 	UpdateComment(ctx context.Context, arg UpdateCommentParams) (Comment, error)
+	UpdateNotificationSchedule(ctx context.Context, arg UpdateNotificationScheduleParams) (int64, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) (Project, error)
 	UpdateRefreshTokenLastUsed(ctx context.Context, tokenHash string) error
 	UpdateTag(ctx context.Context, arg UpdateTagParams) (Tag, error)
-	UpdateTodo(ctx context.Context, arg UpdateTodoParams) error
+	UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error)
 	UpdateTodoTemplate(ctx context.Context, arg UpdateTodoTemplateParams) error
 	UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error)
 }

@@ -24,6 +24,11 @@ ORDER BY scheduled_for ASC;
 DELETE FROM notification_queue
 WHERE notification_id = $1;
 
+-- name: UpdateNotificationSchedule :execrows
+UPDATE notification_queue
+SET scheduled_for = $2
+WHERE todo_id = $1 AND sent = FALSE;
+
 -- name: GetNotificationsWithTodoAndSubscriptions :many
 SELECT 
     nq.notification_id,

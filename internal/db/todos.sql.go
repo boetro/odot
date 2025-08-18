@@ -662,10 +662,11 @@ func (q *Queries) UncompleteTodo(ctx context.Context, todoID int32) (Todo, error
 	return i, err
 }
 
-const updateTodo = `-- name: UpdateTodo :exec
+const updateTodo = `-- name: UpdateTodo :one
 UPDATE todos
 SET template_id = $2, project_id = $3, parent_todo_id = $4, title = $5, description = $6, scheduled_date = $7, duration_min = $8, priority = $9, is_completed = $10, is_modified = $11, modified_fields = $12, completed_at = $13
 WHERE todo_id = $1
+RETURNING todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at
 `
 
 type UpdateTodoParams struct {
@@ -684,8 +685,8 @@ type UpdateTodoParams struct {
 	CompletedAt    pgtype.Timestamptz `json:"completedAt"`
 }
 
-func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) error {
-	_, err := q.db.Exec(ctx, updateTodo,
+func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) (Todo, error) {
+	row := q.db.QueryRow(ctx, updateTodo,
 		arg.TodoID,
 		arg.TemplateID,
 		arg.ProjectID,
@@ -700,7 +701,26 @@ func (q *Queries) UpdateTodo(ctx context.Context, arg UpdateTodoParams) error {
 		arg.ModifiedFields,
 		arg.CompletedAt,
 	)
-	return err
+	var i Todo
+	err := row.Scan(
+		&i.TodoID,
+		&i.UserID,
+		&i.TemplateID,
+		&i.ProjectID,
+		&i.ParentTodoID,
+		&i.Title,
+		&i.Description,
+		&i.IsCompleted,
+		&i.ScheduledDate,
+		&i.DurationMin,
+		&i.Priority,
+		&i.IsModified,
+		&i.ModifiedFields,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.CompletedAt,
+	)
+	return i, err
 }
 
 const updateTodoTemplate = `-- name: UpdateTodoTemplate :exec

@@ -225,3 +225,22 @@ func (q *Queries) MarkNotificationSent(ctx context.Context, notificationID int32
 	_, err := q.db.Exec(ctx, markNotificationSent, notificationID)
 	return err
 }
+
+const updateNotificationSchedule = `-- name: UpdateNotificationSchedule :execrows
+UPDATE notification_queue
+SET scheduled_for = $2
+WHERE todo_id = $1 AND sent = FALSE
+`
+
+type UpdateNotificationScheduleParams struct {
+	TodoID       int32              `json:"todoId"`
+	ScheduledFor pgtype.Timestamptz `json:"scheduledFor"`
+}
+
+func (q *Queries) UpdateNotificationSchedule(ctx context.Context, arg UpdateNotificationScheduleParams) (int64, error) {
+	result, err := q.db.Exec(ctx, updateNotificationSchedule, arg.TodoID, arg.ScheduledFor)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}

@@ -8,6 +8,8 @@ import type { Todo } from "@/lib/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export const Route = createFileRoute("/(app)/todos/$todoId")({
   component: RouteComponent,
@@ -52,6 +54,7 @@ function RouteComponent() {
   const [tempDate, setTempDate] = useState<Date | undefined>(undefined);
   const [tempTime, setTempTime] = useState<string | undefined>(undefined);
   const [tempDuration, setTempDuration] = useState<string>("");
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
 
   useEffect(() => {
     if (todo) {
@@ -146,24 +149,110 @@ function RouteComponent() {
                 onKeyDown={handleKeyDown}
                 onBlur={() => handleSave(pendingTodo)}
               />
-              <textarea
-                className="outline-none resize-none"
-                value={pendingTodo?.description || ""}
-                onChange={(e) =>
-                  setPendingTodo(
-                    pendingTodo
-                      ? {
-                          ...pendingTodo,
-                          description: e.target.value || null,
-                        }
-                      : null,
-                  )
-                }
-                onKeyDown={handleDescriptionKeyDown}
-                onBlur={() => handleSave(pendingTodo)}
-                placeholder="Add a description..."
-                rows={calculateTextareaRows(pendingTodo?.description || "")}
-              />
+              {isEditingDescription ? (
+                <textarea
+                  className="outline-none resize-none"
+                  value={pendingTodo?.description || ""}
+                  onChange={(e) =>
+                    setPendingTodo(
+                      pendingTodo
+                        ? {
+                            ...pendingTodo,
+                            description: e.target.value || null,
+                          }
+                        : null,
+                    )
+                  }
+                  onKeyDown={handleDescriptionKeyDown}
+                  onBlur={() => {
+                    handleSave(pendingTodo);
+                    setIsEditingDescription(false);
+                  }}
+                  placeholder="Add a description..."
+                  rows={calculateTextareaRows(pendingTodo?.description || "")}
+                  autoFocus
+                />
+              ) : (
+                <div
+                  className="min-h-[1.5em] cursor-text"
+                  onClick={() => setIsEditingDescription(true)}
+                >
+                  {pendingTodo?.description ? (
+                    <div className="prose max-w-none dark:prose-invert [&_li:has([data-slot=checkbox])]:flex [&_li:has([data-slot=checkbox])]:items-center [&_li:has([data-slot=checkbox])]:gap-2 [&_li:has([data-slot=checkbox])]:list-none [&_li_p]:m-0">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          input: ({ checked }) => (
+                            <Checkbox
+                              className="not-prose"
+                              defaultChecked={checked}
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            // <input
+                            //   {...props}
+                            //   type="checkbox"
+                            //   checked={checked}
+                            //   disabled={false}
+                            //   onChange={(e) => {
+                            //     e.stopPropagation();
+                            //     if (pendingTodo?.description) {
+                            //       const lines =
+                            //         pendingTodo.description.split("\n");
+                            //       const target = e.target as HTMLInputElement;
+                            //       const listItem = target.closest("li");
+                            //       if (listItem) {
+                            //         const allCheckboxes =
+                            //           document.querySelectorAll(
+                            //             'input[type="checkbox"]',
+                            //           );
+                            //         const checkboxIndex =
+                            //           Array.from(allCheckboxes).indexOf(target);
+                            //         let currentCheckboxIndex = 0;
+
+                            //         const updatedLines = lines.map((line) => {
+                            //           if (line.match(/^\s*[-*+]\s*\[[ x]\]/)) {
+                            //             if (
+                            //               currentCheckboxIndex === checkboxIndex
+                            //             ) {
+                            //               const newState = target.checked
+                            //                 ? "x"
+                            //                 : " ";
+                            //               return line.replace(
+                            //                 /\[[ x]\]/,
+                            //                 `[${newState}]`,
+                            //               );
+                            //             }
+                            //             currentCheckboxIndex++;
+                            //           }
+                            //           return line;
+                            //         });
+
+                            //         const newDescription =
+                            //           updatedLines.join("\n");
+                            //         const newTodo = {
+                            //           ...pendingTodo,
+                            //           description: newDescription,
+                            //         };
+                            //         setPendingTodo(newTodo);
+                            //         handleSave(newTodo);
+                            //       }
+                            //     }
+                            //   }}
+                            //   onClick={(e) => e.stopPropagation()}
+                            // />
+                          ),
+                        }}
+                      >
+                        {pendingTodo.description}
+                      </ReactMarkdown>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground">
+                      Add a description...
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="h-full border-l bg-muted/20 flex flex-col gap-5 p-3 text-sm">

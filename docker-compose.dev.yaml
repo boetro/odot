@@ -62,7 +62,7 @@ services:
       - odot-network
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-      interval: 30s
+      interval: 5s
       timeout: 10s
       start_period: 1s
       retries: 3
