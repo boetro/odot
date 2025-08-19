@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/boetro/odot/internal/auth"
 	"github.com/boetro/odot/internal/config"
@@ -25,7 +24,7 @@ func NewAuthMiddleware(config *config.Config, logger logger.Logger) *AuthMiddlew
 // RequireAuth middleware validates JWT tokens and sets user context
 func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := m.extractToken(c)
+		token := auth.ExtractToken(c)
 		if token == "" {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required"})
 			c.Abort()
@@ -50,7 +49,7 @@ func (m *AuthMiddleware) RequireAuth() gin.HandlerFunc {
 // OptionalAuth middleware validates JWT tokens if present but doesn't require them
 func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		token := m.extractToken(c)
+		token := auth.ExtractToken(c)
 		if token != "" {
 			claims, err := auth.ValidateAccessToken(token, m.config.JWTSecret)
 			if err == nil {
@@ -65,26 +64,6 @@ func (m *AuthMiddleware) OptionalAuth() gin.HandlerFunc {
 	}
 }
 
-// extractToken extracts JWT token from Authorization header or cookie
-func (m *AuthMiddleware) extractToken(c *gin.Context) string {
-	// Try Authorization header first
-	authHeader := c.GetHeader("Authorization")
-	if authHeader != "" {
-		// Bearer token format: "Bearer <token>"
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
-			return parts[1]
-		}
-	}
-
-	// Fallback to cookie
-	token, err := c.Cookie("auth_token")
-	if err == nil {
-		return token
-	}
-
-	return ""
-}
 
 // GetUserID helper function to extract user ID from context
 func GetUserID(c *gin.Context) (int32, bool) {

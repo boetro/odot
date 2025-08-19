@@ -4,6 +4,7 @@ export type User = {
   id: string;
   email: string;
   profilePictureUrl: string;
+  tokenExpiresAt: number; // Unix timestamp in seconds
 };
 
 export type Project = {

@@ -4,25 +4,30 @@ import (
 	"net/http"
 
 	"github.com/boetro/odot/internal/api/middleware"
+	"github.com/boetro/odot/internal/auth"
+	"github.com/boetro/odot/internal/config"
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
 	"github.com/gin-gonic/gin"
 )
 
 type GetUserResponse struct {
-	ID                int32  `json:"id"`
+	ID                int32 `json:"id"`
 	Email             string `json:"email"`
 	ProfilePictureUrl string `json:"profile_picture_url"`
+	TokenExpiresAt    int64 `json:"token_expires_at"` // Unix timestamp in seconds
 }
 
 type UserHandler struct {
 	querier db.Querier
+	config  *config.Config
 	logger  logger.Logger
 }
 
-func NewUserHandler(querier db.Querier, logger logger.Logger) *UserHandler {
+func NewUserHandler(querier db.Querier, config *config.Config, logger logger.Logger) *UserHandler {
 	return &UserHandler{
 		querier: querier,
+		config:  config,
 		logger:  logger,
 	}
 }
@@ -50,12 +55,24 @@ func (h *UserHandler) GetUser(c *gin.Context) {
 		return
 	}
 
+	// Extract token expiration time
+	tokenExpiresAt := int64(0)
+	token := auth.ExtractToken(c)
+	if token != "" {
+		claims, err := auth.ValidateAccessToken(token, h.config.JWTSecret)
+		if err == nil && claims.ExpiresAt != nil {
+			tokenExpiresAt = claims.ExpiresAt.Unix()
+		}
+	}
+
 	apiUser := GetUserResponse{
 		ID:                user.UserID,
 		Email:             user.Email,
 		ProfilePictureUrl: user.ProfilePictureUrl.String,
+		TokenExpiresAt:    tokenExpiresAt,
 	}
 
 	c.JSON(http.StatusOK, apiUser)
 	return
 }
+

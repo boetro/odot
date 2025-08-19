@@ -6,8 +6,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
 
@@ -126,4 +128,25 @@ func ValidateAccessToken(tokenString string, jwtSecret string) (*Claims, error) 
 // HashRefreshToken hashes a refresh token for database lookup
 func HashRefreshToken(token string) string {
 	return hashToken(token)
+}
+
+// ExtractToken extracts JWT token from Authorization header or cookie
+func ExtractToken(c *gin.Context) string {
+	// Try Authorization header first
+	authHeader := c.GetHeader("Authorization")
+	if authHeader != "" {
+		// Bearer token format: "Bearer <token>"
+		parts := strings.SplitN(authHeader, " ", 2)
+		if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+			return parts[1]
+		}
+	}
+
+	// Fallback to cookie
+	token, err := c.Cookie("auth_token")
+	if err == nil {
+		return token
+	}
+
+	return ""
 }

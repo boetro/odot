@@ -11,6 +11,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   const checkAuth = async () => {
+    const setAuthenticatedUser = (userData: User) => {
+      setUser(userData);
+      setIsAuthenticated(true);
+
+      async function refresh() {
+        try {
+          const success = await refreshToken();
+          if (!success) {
+            setIsAuthenticated(false);
+            setUser(null);
+          }
+        } catch {
+          setIsAuthenticated(false);
+          setUser(null);
+        }
+      }
+
+      // Calculate refresh timeout based on token expiration
+      // Refresh 2 minutes before expiration, or use 10 minutes as fallback
+      const now = Math.floor(Date.now() / 1000);
+      const expiresIn = userData.tokenExpiresAt - now;
+      const refreshIn = Math.max(0, (expiresIn - 120) * 1000); // 2 minutes before expiration
+      const timeout = refreshIn > 0 ? refreshIn : 10 * 60 * 1000; // fallback to 10 minutes
+
+      setTimeout(refresh, timeout);
+
+      return {
+        user: userData,
+        isAuthenticated: true,
+      };
+    };
+
+    const setUnauthenticated = () => {
+      setIsAuthenticated(false);
+      setUser(null);
+      return {
+        user: null,
+        isAuthenticated: false,
+      };
+    };
+
+    const tryRefreshAndRetry = async () => {
+      try {
+        const refreshSuccess = await refreshToken();
+        if (refreshSuccess) {
+          const retryResponse = await fetch("/api/me", {
+            credentials: "include",
+          });
+
+          if (retryResponse.ok) {
+            const userData = await retryResponse.json();
+            return setAuthenticatedUser(userData);
+          }
+        }
+      } catch {
+        // Refresh failed
+      }
+      return setUnauthenticated();
+    };
+
     try {
       // Call your backend to verify the JWT in the cookie
       const response = await apiRequest("/api/me", {
@@ -19,43 +79,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const userData = await response.json();
-        setUser(userData);
-        setIsAuthenticated(true);
-
-        async function refresh() {
-          try {
-            const success = await refreshToken();
-            if (!success) {
-              setIsAuthenticated(false);
-              setUser(null);
-            }
-          } catch {
-            setIsAuthenticated(false);
-            setUser(null);
-          }
-        }
-
-        setTimeout(refresh, 10 * 60 * 1000);
-
-        return {
-          user: userData,
-          isAuthenticated: true,
-        };
+        return setAuthenticatedUser(userData);
       } else {
-        setIsAuthenticated(false);
-        setUser(null);
-        return {
-          user: null,
-          isAuthenticated: false,
-        };
+        return await tryRefreshAndRetry();
       }
     } catch {
-      setIsAuthenticated(false);
-      setUser(null);
-      return {
-        user: null,
-        isAuthenticated: false,
-      };
+      return await tryRefreshAndRetry();
     } finally {
       setIsLoading(false);
     }

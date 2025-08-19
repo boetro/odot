@@ -43,7 +43,7 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 		protected.Use(authMiddleware.RequireAuth())
 		// User Handler
 		{
-			userHandler := handlers.NewUserHandler(querier, logger)
+			userHandler := handlers.NewUserHandler(querier, cfg, logger)
 			protected.GET("/me", userHandler.GetUser)
 		}
 		// Project Handler
