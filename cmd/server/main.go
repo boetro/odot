@@ -33,6 +33,7 @@ import (
 
 	"github.com/boetro/odot/cmd/docs"
 	"github.com/boetro/odot/internal/api"
+	"github.com/boetro/odot/internal/api/opentelemetry"
 	"github.com/boetro/odot/internal/config"
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
@@ -41,6 +42,7 @@ import (
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 )
 
 func main() {
@@ -50,6 +52,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
+
+	cleanup := opentelemetry.InitTracer(cfg)
+	defer cleanup(ctx)
 
 	// Initialize logger
 	logger := logger.New(cfg.LogLevel)
@@ -78,6 +83,7 @@ func main() {
 	// Set up Gin router
 	router := gin.New()
 	router.Use(gin.Recovery())
+	router.Use(otelgin.Middleware(cfg.ServiceName))
 
 	docs.SwaggerInfo.BasePath = "/"
 

@@ -20,6 +20,9 @@ type Config struct {
 	VAPIDPublicKey          string
 	VAPIDPrivateKey         string
 	VAPIDSubject            string
+	ServiceName             string
+	CollectorURL            string
+	Insecure                bool
 }
 
 // Load reads configuration from environment variables
@@ -84,6 +87,20 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("VAPID_SUBJECT environment variable is required")
 	}
 
+	insStr := os.Getenv("INSECURE")
+	var ins bool
+	if insStr == "" {
+		ins = false
+	} else {
+		ins = true
+	}
+
+	collectorURL := os.Getenv("COLLECTOR_URL")
+	serviceName := os.Getenv("SERVICE_NAME")
+	if serviceName == "" {
+		serviceName = "odot"
+	}
+
 	return &Config{
 		Port:                    port,
 		LogLevel:                logLevel,
@@ -97,5 +114,8 @@ func Load() (*Config, error) {
 		VAPIDPublicKey:          vapidPublicKey,
 		VAPIDPrivateKey:         vapidPrivateKey,
 		VAPIDSubject:            vapidSubject,
+		Insecure:                ins,
+		ServiceName:             serviceName,
+		CollectorURL:            collectorURL,
 	}, nil
 }
