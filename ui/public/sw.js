@@ -1,4 +1,4 @@
-const CACHE_NAME = "odot-app-v1";
+const CACHE_NAME = "odot-app-v2";
 
 self.addEventListener("install", (event) => {
   // Add caching during install
@@ -19,7 +19,23 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   console.log("Service Worker activating");
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    Promise.all([
+      // Clear old caches
+      caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              console.log("Deleting old cache:", cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      }),
+      // Claim all clients immediately
+      self.clients.claim()
+    ])
+  );
 });
 
 self.addEventListener("push", (event) => {
