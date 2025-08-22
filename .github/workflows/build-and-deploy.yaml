@@ -10,8 +10,8 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
-    # runs-on: ubuntu-24.04-arm64
+    # runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm64
     permissions:
       contents: write
       packages: write
