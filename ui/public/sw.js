@@ -132,23 +132,41 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  // Don't intercept API calls or other backend routes
+  if (
+    event.request.url.includes("/api/") ||
+    event.request.url.includes("/health") ||
+    event.request.url.includes("/swagger")
+  ) {
+    return;
+  }
+
   event.respondWith(
     caches
       .match(event.request)
       .then((response) => {
-        // Return cached version or fetch from network
-        return (
-          response ||
-          fetch(event.request).then((fetchResponse) => {
-            // Cache JS/CSS assets and other static resources
+        // Return cached version if available
+        if (response) {
+          return response;
+        }
+
+        // Fetch from network
+        return fetch(event.request)
+          .then((fetchResponse) => {
+            // Only cache successful responses
+            if (!fetchResponse || !fetchResponse.ok) {
+              return fetchResponse;
+            }
+
+            // Cache static assets
             if (
-              fetchResponse.ok &&
-              (event.request.url.includes("/assets/") ||
-                event.request.url.endsWith(".js") ||
-                event.request.url.endsWith(".css") ||
-                event.request.url.endsWith(".svg") ||
-                event.request.url.endsWith(".png") ||
-                event.request.url.endsWith(".jpg"))
+              event.request.url.includes("/assets/") ||
+              event.request.url.endsWith(".js") ||
+              event.request.url.endsWith(".css") ||
+              event.request.url.endsWith(".svg") ||
+              event.request.url.endsWith(".png") ||
+              event.request.url.endsWith(".jpg") ||
+              event.request.url.endsWith(".ico")
             ) {
               const responseClone = fetchResponse.clone();
               caches.open(CACHE_NAME).then((cache) => {
@@ -157,13 +175,23 @@ self.addEventListener("fetch", (event) => {
             }
             return fetchResponse;
           })
-        );
+          .catch((error) => {
+            console.error("Fetch failed:", error);
+            // Fallback for offline navigation requests
+            if (event.request.mode === "navigate") {
+              return caches.match("/");
+            }
+            throw error;
+          });
       })
-      .catch(() => {
-        // Fallback for offline - return cached main page for navigation requests
-        if (event.request.mode === "navigate") {
-          return caches.match("/");
-        }
+      .catch((error) => {
+        console.error("Cache match failed:", error);
+        // If cache fails, try direct fetch
+        return fetch(event.request).catch(() => {
+          if (event.request.mode === "navigate") {
+            return caches.match("/");
+          }
+        });
       }),
   );
 });
