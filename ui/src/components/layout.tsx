@@ -25,8 +25,7 @@ import { pushNotificationService } from "../lib/push-notifications";
 import { Button } from "./ui/button";
 import { NewTodoDialog } from "./new-todo-dialog";
 
-export default function Layout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthRequired();
+function InnerLayout({ children, user }: { children: React.ReactNode; user: any }) {
   const { data: projects, isLoading: projectsLoading } = useQuery(
     projectQueries.listProjects(),
   );
@@ -223,4 +222,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       />
     </SidebarProvider>
   );
+}
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuthRequired();
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  return <InnerLayout user={user}>{children}</InnerLayout>;
 }

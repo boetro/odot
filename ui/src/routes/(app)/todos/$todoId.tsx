@@ -10,6 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { ProseMirrorEditor } from "@/components/prosemirror-editor";
 
 export const Route = createFileRoute("/(app)/todos/$todoId")({
   component: RouteComponent,
@@ -149,58 +150,19 @@ function RouteComponent() {
                 onKeyDown={handleKeyDown}
                 onBlur={() => handleSave(pendingTodo)}
               />
-              {isEditingDescription ? (
-                <textarea
-                  className="outline-none resize-none"
-                  value={pendingTodo?.description || ""}
-                  onChange={(e) =>
-                    setPendingTodo(
-                      pendingTodo
-                        ? {
-                            ...pendingTodo,
-                            description: e.target.value || null,
-                          }
-                        : null,
-                    )
-                  }
-                  onKeyDown={handleDescriptionKeyDown}
-                  onBlur={() => {
-                    handleSave(pendingTodo);
-                    setIsEditingDescription(false);
-                  }}
-                  placeholder="Add a description..."
-                  rows={calculateTextareaRows(pendingTodo?.description || "")}
-                  autoFocus
-                />
-              ) : (
-                <div
-                  className="min-h-[1.5em] cursor-text"
-                  onClick={() => setIsEditingDescription(true)}
-                >
-                  {pendingTodo?.description ? (
-                    <div className="prose-sm max-w-none dark:prose-invert [&_ul]:list-disc [&_ol]:list-decimal [&_li:has([data-slot=checkbox])]:flex [&_li:has([data-slot=checkbox])]:items-center [&_li_button[data-slot=checkbox]]:mr-2 [&_li_p_button[data-slot=checkbox]]:inline-flex [&_li_p_button[data-slot=checkbox]]:items-center [&_li_p_button[data-slot=checkbox]]:justify-center [&_li_p_button[data-slot=checkbox]]:min-h-4 [&_li:has([data-slot=checkbox])]:list-none [&_li_p]:m-0 [&_li:has([data-slot=checkbox])]:-ml-6">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          input: ({ checked }) => (
-                            <Checkbox
-                              className="not-prose"
-                              defaultChecked={checked}
-                              onClick={(e) => e.stopPropagation()}
-                            />
-                          ),
-                        }}
-                      >
-                        {pendingTodo.description}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      Add a description...
-                    </span>
-                  )}
-                </div>
-              )}
+              <ProseMirrorEditor
+                className="outline-none resize-none text-sm"
+                initialMarkdown={pendingTodo?.description || ""}
+                placeholder="Add a description..."
+                setMarkdown={(md) => {
+                  const newTodo = {
+                    ...pendingTodo,
+                    description: md,
+                  };
+                  setPendingTodo(newTodo);
+                  handleSave(newTodo);
+                }}
+              />
             </div>
           </div>
           <div className="h-full border-l bg-muted/20 flex flex-col gap-5 p-3 text-sm">

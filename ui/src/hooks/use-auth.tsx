@@ -11,7 +11,13 @@ export const useAuth = () => {
 
 export const useAuthRequired = () => {
   const data = useAuth();
-  if (!data.user || !data.user) {
+  if (data.isLoading) {
+    return {
+      ...data,
+      user: null,
+    };
+  }
+  if (!data.user || !data.isAuthenticated) {
     // TODO: should probably redirect to login page
     throw new Error("User is not authenticated");
   }

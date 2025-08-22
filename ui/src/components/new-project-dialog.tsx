@@ -152,7 +152,8 @@ export function NewProjectDialog({
         if (
           activeElement &&
           (activeElement.tagName === "INPUT" ||
-            activeElement.tagName === "TEXTAREA")
+            activeElement.tagName === "TEXTAREA" ||
+            activeElement.closest("#prosemirror-editor"))
         ) {
           return;
         }

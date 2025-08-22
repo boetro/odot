@@ -13,6 +13,7 @@ import ProjectDropdown from "./project-dropdown";
 import DateDropdown from "./date-dropdown";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { listProjectTodos, listUserTodos } from "@/lib/queries/keys";
+import { ProseMirrorEditor } from "./prosemirror-editor";
 
 function combineDate(date: Date | undefined, timeStr: string | undefined) {
   if (!date) return undefined;
@@ -150,7 +151,8 @@ export function NewTodoDialog({
         if (
           activeElement &&
           (activeElement.tagName === "INPUT" ||
-            activeElement.tagName === "TEXTAREA")
+            activeElement.tagName === "TEXTAREA" ||
+            activeElement.closest("#prosemirror-editor"))
         ) {
           return;
         }
@@ -196,19 +198,14 @@ export function NewTodoDialog({
           </DialogTitle>
         </DialogHeader>
         <div className="flex space-y-4 flex-col px-4">
-          <textarea
-            ref={textareaRef}
-            placeholder="Add Description"
-            data-slot="textarea"
-            className="outline-none text-sm w-full resize-none"
-            rows={3}
-            onInput={handleTextareaResize}
-            style={{ minHeight: "3rem" }}
-            value={pendingTodo.description}
-            onChange={(e) => {
+          <ProseMirrorEditor
+            className="outline-none resize-none text-sm w-full"
+            initialMarkdown={pendingTodo?.description || ""}
+            placeholder="Add a description..."
+            setMarkdown={(md) => {
               setPendingTodo({
                 ...pendingTodo,
-                description: e.target.value,
+                description: md,
               });
             }}
           />
