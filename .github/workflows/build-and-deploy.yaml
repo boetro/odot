@@ -10,7 +10,7 @@ env:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu
+    runs-on: arc-runner-set
     permissions:
       contents: write
       packages: write
