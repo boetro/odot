@@ -296,12 +296,68 @@ function TodoList({
   setCollapsedGroups: (groups: string[]) => void;
   viewState: TodoViewState;
 }) {
+  const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
+  const [displayGroupedTodos, setDisplayGroupedTodos] = useState<typeof groupedTodos>(groupedTodos);
+  const [displaySortedTodos, setDisplaySortedTodos] = useState<TodoWithProject[]>(sortedTodos);
+  
+  // Track todos that are disappearing and animate them out
+  React.useEffect(() => {
+    if (groupedTodos === null) {
+      // Handle ungrouped todos
+      if (!displaySortedTodos || !sortedTodos) {
+        setDisplaySortedTodos(sortedTodos);
+        return;
+      }
+
+      const currentTodoIds = new Set(sortedTodos.map(todo => todo.id));
+      const displayTodoIds = displaySortedTodos.map(todo => todo.id);
+      
+      const disappearingTodoIds = displayTodoIds.filter(id => !currentTodoIds.has(id));
+      
+      if (disappearingTodoIds.length > 0) {
+        setAnimatingOut(new Set(disappearingTodoIds));
+        
+        setTimeout(() => {
+          setDisplaySortedTodos(sortedTodos);
+          setAnimatingOut(new Set());
+        }, 300);
+      } else {
+        setDisplaySortedTodos(sortedTodos);
+      }
+    } else {
+      // Handle grouped todos
+      if (!displayGroupedTodos || !groupedTodos) {
+        setDisplayGroupedTodos(groupedTodos);
+        return;
+      }
+
+      const currentTodoIds = new Set(
+        groupedTodos.flatMap(group => group.todos.map(todo => todo.id))
+      );
+      const displayTodoIds = displayGroupedTodos.flatMap(group => group.todos.map(todo => todo.id));
+      
+      const disappearingTodoIds = displayTodoIds.filter(id => !currentTodoIds.has(id));
+      
+      if (disappearingTodoIds.length > 0) {
+        setAnimatingOut(new Set(disappearingTodoIds));
+        
+        setTimeout(() => {
+          setDisplayGroupedTodos(groupedTodos);
+          setAnimatingOut(new Set());
+        }, 300);
+      } else {
+        setDisplayGroupedTodos(groupedTodos);
+      }
+    }
+  }, [groupedTodos, sortedTodos, displayGroupedTodos, displaySortedTodos]);
   return (
     <div className="flex flex-col w-full h-full overflow-y-auto">
-      {groupedTodos === null &&
-        sortedTodos.map((todo) => <TodoItem key={todo.id} todo={todo} />)}
-      {groupedTodos !== null &&
-        groupedTodos.map((group) => (
+      {displayGroupedTodos === null &&
+        displaySortedTodos.map((todo) => (
+          <TodoItem key={todo.id} todo={todo} isAnimatingOut={animatingOut.has(todo.id)} />
+        ))}
+      {displayGroupedTodos !== null &&
+        displayGroupedTodos.map((group) => (
           <Collapsible
             key={group.key}
             open={collapsedGroups.find((id) => id === group.key) === undefined}
@@ -340,7 +396,7 @@ function TodoList({
             </CollapsibleTrigger>
             <CollapsibleContent>
               {group.todos.map((todo) => (
-                <TodoItem key={todo.id} todo={todo} />
+                <TodoItem key={todo.id} todo={todo} isAnimatingOut={animatingOut.has(todo.id)} />
               ))}
             </CollapsibleContent>
           </Collapsible>
@@ -349,7 +405,7 @@ function TodoList({
   );
 }
 
-function TodoItem({ todo }: { todo: TodoWithProject }) {
+function TodoItem({ todo, isAnimatingOut = false }: { todo: TodoWithProject; isAnimatingOut?: boolean }) {
   const queryClient = useQueryClient();
 
   const completeTodoMutation = useMutation({
@@ -381,7 +437,15 @@ function TodoItem({ todo }: { todo: TodoWithProject }) {
   });
 
   return (
-    <div key={todo.id} className="flex items-center gap-2 hover:bg-muted p-2">
+    <div 
+      key={todo.id} 
+      className={cn(
+        "flex items-center gap-2 hover:bg-muted p-2 transition-all duration-300 ease-out",
+        isAnimatingOut 
+          ? "opacity-0 translate-x-4 scale-95" 
+          : "opacity-100 translate-x-0 scale-100"
+      )}
+    >
       <Checkbox
         checked={todo.completed}
         onCheckedChange={(checked) => {
