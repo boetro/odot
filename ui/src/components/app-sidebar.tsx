@@ -8,7 +8,6 @@ import {
   LoaderCircle,
   Plus,
   SearchIcon,
-  Trash,
 } from "lucide-react";
 
 import {
@@ -311,7 +310,9 @@ function ProjectTree({
               size="icon"
               variant="ghost"
               className={`dark:hover:bg-background/30 size-6 transition-opacity ${
-                updateProjectOpen || dropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                updateProjectOpen || dropdownOpen
+                  ? "opacity-100"
+                  : "opacity-0 group-hover:opacity-100"
               }`}
             >
               <Ellipsis />
@@ -322,10 +323,10 @@ function ProjectTree({
               <Edit />
               Edit
             </DropdownMenuItem>
-            <DropdownMenuItem variant="destructive">
+            {/*<DropdownMenuItem variant="destructive">
               <Trash />
               Delete
-            </DropdownMenuItem>
+            </DropdownMenuItem>*/}
           </DropdownMenuContent>
         </DropdownMenu>
         <ProjectDialog
@@ -360,7 +361,9 @@ function ProjectTree({
                   size="icon"
                   variant="ghost"
                   className={`dark:hover:bg-background/30 size-6 transition-opacity ${
-                    updateProjectOpen || dropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    updateProjectOpen || dropdownOpen
+                      ? "opacity-100"
+                      : "opacity-0 group-hover:opacity-100"
                   }`}
                 >
                   <Ellipsis />
@@ -371,10 +374,10 @@ function ProjectTree({
                   <Edit />
                   Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem variant="destructive">
+                {/*<DropdownMenuItem variant="destructive">
                   <Trash />
                   Delete
-                </DropdownMenuItem>
+                </DropdownMenuItem>*/}
               </DropdownMenuContent>
             </DropdownMenu>
             <span className="flex justify-between items-center gap-2 w-full h-full">
