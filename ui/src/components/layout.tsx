@@ -24,8 +24,15 @@ import { useCallback, useEffect, useState } from "react";
 import { pushNotificationService } from "../lib/push-notifications";
 import { Button } from "./ui/button";
 import { NewTodoDialog } from "./new-todo-dialog";
+import type { User } from "@/lib/types";
 
-function InnerLayout({ children, user }: { children: React.ReactNode; user: any }) {
+function InnerLayout({
+  children,
+  user,
+}: {
+  children: React.ReactNode;
+  user: User;
+}) {
   const { data: projects, isLoading: projectsLoading } = useQuery(
     projectQueries.listProjects(),
   );
@@ -143,7 +150,7 @@ function InnerLayout({ children, user }: { children: React.ReactNode; user: any 
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} />
+      <AppSidebar user={user} selectedProject={selectedProject} />
       <SidebarInset className="border h-full-w-full overflow-hidden">
         <div className="flex justify-between border-b">
           <div className="pl-1 py-1 flex space-x-2 items-center">
@@ -227,7 +234,7 @@ function InnerLayout({ children, user }: { children: React.ReactNode; user: any 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthRequired();
 
-  if (isLoading) {
+  if (isLoading || !user) {
     return <div>Loading...</div>;
   }
 

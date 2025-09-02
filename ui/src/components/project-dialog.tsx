@@ -28,19 +28,21 @@ const COMMON_COLORS = [
   { name: "Cyan", hex: "#06b6d4" },
 ];
 
-export function NewProjectDialog({
+export function ProjectDialog({
   open,
   setOpen,
   projects,
+  initialProject,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   projects: Project[];
+  initialProject?: Project | null | undefined;
 }) {
   const queryClient = useQueryClient();
   const projNameRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const mutation = useMutation({
+  const createMutation = useMutation({
     mutationFn: (newProject: {
       name: string;
       description: string;
@@ -65,16 +67,53 @@ export function NewProjectDialog({
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: (updatedProject: {
+      name: string;
+      description: string;
+      color?: string;
+      parent_project_id?: number;
+    }) => {
+      return fetch(`/api/projects/${initialProject?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify(updatedProject),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: listProjectsKeys,
+      });
+      resetForm();
+      setOpen(false);
+    },
+  });
+
   const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function resetForm() {
-    setPendingProject({
-      name: "",
-      description: "",
-      color: undefined,
-      parentProject: undefined,
-    });
+    if (initialProject) {
+      const initialColor = COMMON_COLORS.find(c => c.hex === initialProject.color);
+      setPendingProject({
+        name: initialProject.name,
+        description: initialProject.description || "",
+        color: initialColor,
+        parentProject: initialProject.parent_project_id
+          ? projects.find((p) => p.id === initialProject.parent_project_id)
+          : undefined,
+      });
+    } else {
+      setPendingProject({
+        name: "",
+        description: "",
+        color: undefined,
+        parentProject: undefined,
+      });
+    }
     setError(null);
   }
 
@@ -98,14 +137,27 @@ export function NewProjectDialog({
     description: string;
     color: (typeof COMMON_COLORS)[0] | undefined;
     parentProject: Project | undefined;
-  }>({
-    name: "",
-    description: "",
-    color: undefined,
-    parentProject: undefined,
+  }>(() => {
+    if (initialProject) {
+      const initialColor = COMMON_COLORS.find(c => c.hex === initialProject.color);
+      return {
+        name: initialProject.name,
+        description: initialProject.description || "",
+        color: initialColor,
+        parentProject: initialProject.parent_project_id
+          ? projects.find((p) => p.id === initialProject.parent_project_id)
+          : undefined,
+      };
+    }
+    return {
+      name: "",
+      description: "",
+      color: undefined,
+      parentProject: undefined,
+    };
   });
 
-  function createProject() {
+  function handleSubmit() {
     if (!pendingProject.name) {
       setError("Name is required");
       return;
@@ -128,12 +180,18 @@ export function NewProjectDialog({
       projColor = randomColor.hex;
     }
 
-    mutation.mutate({
+    const projectData = {
       name: pendingProject.name,
       description: pendingProject.description,
       color: projColor,
       parent_project_id: pendingProject.parentProject?.id,
-    });
+    };
+
+    if (initialProject) {
+      updateMutation.mutate(projectData);
+    } else {
+      createMutation.mutate(projectData);
+    }
   }
 
   useEffect(() => {
@@ -184,7 +242,7 @@ export function NewProjectDialog({
           <DialogTitle>
             <input
               type="text"
-              placeholder="Project Name"
+              placeholder={initialProject ? "Edit Project Name" : "Project Name"}
               data-slot="input"
               ref={projNameRef}
               className="outline-none w-full"
@@ -279,10 +337,13 @@ export function NewProjectDialog({
             <Button
               type="submit"
               size="sm"
-              disabled={!pendingProject.name || mutation.isPending}
-              onClick={createProject}
+              disabled={!pendingProject.name || createMutation.isPending || updateMutation.isPending}
+              onClick={handleSubmit}
             >
-              {mutation.isPending ? "Creating..." : "Create"}
+              {initialProject 
+                ? (updateMutation.isPending ? "Updating..." : "Update")
+                : (createMutation.isPending ? "Creating..." : "Create")
+              }
             </Button>
           </div>
         </DialogFooter>

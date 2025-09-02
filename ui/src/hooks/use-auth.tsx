@@ -1,5 +1,6 @@
 import { useContext } from "react";
 import { AuthContext } from "@/contexts/auth-context-definition";
+import { useNavigate } from "@tanstack/react-router";
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -11,6 +12,7 @@ export const useAuth = () => {
 
 export const useAuthRequired = () => {
   const data = useAuth();
+  const navigate = useNavigate();
   if (data.isLoading) {
     return {
       ...data,
@@ -18,7 +20,7 @@ export const useAuthRequired = () => {
     };
   }
   if (!data.user || !data.isAuthenticated) {
-    // TODO: should probably redirect to login page
+    navigate({ to: "/login" });
     throw new Error("User is not authenticated");
   }
   return {

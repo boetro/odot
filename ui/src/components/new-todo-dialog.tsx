@@ -30,14 +30,16 @@ export function NewTodoDialog({
   open,
   setOpen,
   projects,
+  initialProject,
 }: {
   open: boolean;
   setOpen: (open: boolean) => void;
   projects: Project[];
+  initialProject?: Project | null | undefined;
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createMore, setCreateMore] = useState(false);
 
   const [pendingTodo, setPendingTodo] = useState<{
     title: string;
@@ -51,6 +53,7 @@ export function NewTodoDialog({
     title: "",
     description: "",
     durationMinutes: "",
+    project: initialProject || undefined,
   });
   const queryClient = useQueryClient();
 
@@ -83,7 +86,9 @@ export function NewTodoDialog({
         });
       }
       resetForm();
-      setOpen(false);
+      if (!createMore) {
+        setOpen(false);
+      }
     },
   });
 
@@ -116,24 +121,9 @@ export function NewTodoDialog({
       title: "",
       description: "",
       durationMinutes: "",
+      project: initialProject || undefined,
     });
   }
-
-  const handleTextareaResize = () => {
-    if (textareaRef.current) {
-      const maxHeight = window.innerHeight * 0.6;
-      textareaRef.current.style.height = "auto";
-      const scrollHeight = textareaRef.current.scrollHeight;
-
-      if (scrollHeight > maxHeight) {
-        textareaRef.current.style.height = `${maxHeight}px`;
-        textareaRef.current.style.overflowY = "auto";
-      } else {
-        textareaRef.current.style.height = `${scrollHeight}px`;
-        textareaRef.current.style.overflowY = "hidden";
-      }
-    }
-  };
 
   useEffect(() => {
     if (titleRef.current) {
@@ -260,13 +250,16 @@ export function NewTodoDialog({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false);
+                setCreateMore(false);
+              }}
             >
               Cancel
             </Button>
             <div className="flex space-x-4 items-center">
               <div className="flex space-x-2 items-center">
-                <Switch />
+                <Switch checked={createMore} onCheckedChange={setCreateMore} />
                 <span className="text-xs">Create More</span>
               </div>
               <Button

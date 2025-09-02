@@ -2,10 +2,13 @@ import {
   Box,
   ChevronRight,
   CirclePlus,
+  Edit,
+  Ellipsis,
   Home,
   LoaderCircle,
   Plus,
   SearchIcon,
+  Trash,
 } from "lucide-react";
 
 import {
@@ -27,7 +30,7 @@ import type { Project, User } from "@/lib/types";
 import { NewTodoDialog } from "./new-todo-dialog";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { NewProjectDialog } from "./new-project-dialog";
+import { ProjectDialog } from "./project-dialog";
 import { projectQueries } from "@/lib/queries/projects";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -37,6 +40,13 @@ import {
 } from "./ui/collapsible";
 import SearchDialog from "./search";
 import { todoQueries } from "@/lib/queries/todos";
+import { Button } from "./ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 
 // Menu items.
 const items = [
@@ -49,6 +59,7 @@ const items = [
 
 type Props = {
   user: User;
+  selectedProject: Project | null | undefined;
 };
 
 type ProjectHierarchy = {
@@ -58,6 +69,7 @@ type ProjectHierarchy = {
 
 export function AppSidebar({
   user,
+  selectedProject,
   ...props
 }: React.ComponentProps<typeof Sidebar> & Props) {
   const loc = useLocation();
@@ -178,6 +190,7 @@ export function AppSidebar({
                   <ProjectTree
                     key={project.project.id}
                     projectHierarchy={project}
+                    allProjects={projects || []}
                   />
                 ))}
                 <SidebarMenuItem>
@@ -210,10 +223,11 @@ export function AppSidebar({
           open={newTodoOpen}
           setOpen={setNewTodoOpen}
           projects={projects || []}
+          initialProject={selectedProject}
         />
       )}
       {projects !== undefined && (
-        <NewProjectDialog
+        <ProjectDialog
           open={newProjectOpen}
           setOpen={setNewProjectOpen}
           projects={projects || []}
@@ -231,11 +245,15 @@ export function AppSidebar({
 
 function ProjectTree({
   projectHierarchy,
+  allProjects,
 }: {
   projectHierarchy: ProjectHierarchy;
+  allProjects: Project[];
 }) {
   const loc = useLocation();
   const [open, setOpen] = useState(false);
+  const [updateProjectOpen, setUpdateProjectOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Helper function to check if current project contains the active project in its hierarchy
   const containsActiveProject = useCallback(
@@ -272,21 +290,50 @@ function ProjectTree({
   if (!projectHierarchy.children.length) {
     return (
       <SidebarMenuButton
-        asChild
         tooltip={projectHierarchy.project.name}
         isActive={`/projects/${projectHierarchy.project.id}` === loc.pathname}
+        className="flex justify-between p-0 px-2 group"
       >
         <Link
           to="/projects/$projectId"
           params={{ projectId: projectHierarchy.project.id.toString() }}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full"
         >
           <Box
             style={{ color: projectHierarchy.project.color }}
             className="size-4"
           />
-          <span>{projectHierarchy.project.name}</span>
+          <span className="w-full flex">{projectHierarchy.project.name}</span>
         </Link>
+        <DropdownMenu onOpenChange={setDropdownOpen}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`dark:hover:bg-background/30 size-6 transition-opacity ${
+                updateProjectOpen || dropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+              }`}
+            >
+              <Ellipsis />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" className="text-xs">
+            <DropdownMenuItem onClick={() => setUpdateProjectOpen(true)}>
+              <Edit />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem variant="destructive">
+              <Trash />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <ProjectDialog
+          projects={allProjects}
+          open={updateProjectOpen}
+          setOpen={setUpdateProjectOpen}
+          initialProject={projectHierarchy.project}
+        />
       </SidebarMenuButton>
     );
   }
@@ -304,9 +351,32 @@ function ProjectTree({
             isActive={
               `/projects/${projectHierarchy.project.id}` === loc.pathname
             }
-            className="flex justify-between flex-row-reverse p-0 px-2"
+            className="flex justify-between flex-row-reverse p-0 px-2 group"
           >
             <ChevronRight className="transition-transform" />
+            <DropdownMenu onOpenChange={setDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className={`dark:hover:bg-background/30 size-6 transition-opacity ${
+                    updateProjectOpen || dropdownOpen ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
+                >
+                  <Ellipsis />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="right" className="text-xs">
+                <DropdownMenuItem onClick={() => setUpdateProjectOpen(true)}>
+                  <Edit />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive">
+                  <Trash />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <span className="flex justify-between items-center gap-2 w-full h-full">
               <Link
                 to="/projects/$projectId"
@@ -325,11 +395,21 @@ function ProjectTree({
         <CollapsibleContent>
           <SidebarMenuSub className="mr-0 pr-0">
             {projectHierarchy.children.map((subItem, index) => (
-              <ProjectTree key={index} projectHierarchy={subItem} />
+              <ProjectTree
+                key={index}
+                projectHierarchy={subItem}
+                allProjects={allProjects}
+              />
             ))}
           </SidebarMenuSub>
         </CollapsibleContent>
       </Collapsible>
+      <ProjectDialog
+        projects={allProjects}
+        open={updateProjectOpen}
+        setOpen={setUpdateProjectOpen}
+        initialProject={projectHierarchy.project}
+      />
     </SidebarMenuItem>
   );
 }
