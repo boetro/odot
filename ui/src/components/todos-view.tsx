@@ -105,6 +105,38 @@ function TodoBoard({
 }) {
   // TODO: figure out a way to remove this duplication
   const queryClient = useQueryClient();
+  const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
+  const [displayTodos, setDisplayTodos] = useState<typeof groupedTodos>(groupedTodos);
+  
+  // Track todos that are disappearing and animate them out
+  React.useEffect(() => {
+    if (!displayTodos || !groupedTodos) {
+      setDisplayTodos(groupedTodos);
+      return;
+    }
+
+    // Find todos that were in displayTodos but are not in current groupedTodos
+    const currentTodoIds = new Set(
+      groupedTodos.flatMap(group => group.todos.map(todo => todo.id))
+    );
+    const displayTodoIds = displayTodos.flatMap(group => group.todos.map(todo => todo.id));
+    
+    const disappearingTodoIds = displayTodoIds.filter(id => !currentTodoIds.has(id));
+    
+    if (disappearingTodoIds.length > 0) {
+      // Start animation for disappearing todos
+      setAnimatingOut(new Set(disappearingTodoIds));
+      
+      // After animation duration, update displayTodos to match current groupedTodos
+      setTimeout(() => {
+        setDisplayTodos(groupedTodos);
+        setAnimatingOut(new Set());
+      }, 300); // Animation duration
+    } else {
+      // No animations needed, update immediately
+      setDisplayTodos(groupedTodos);
+    }
+  }, [groupedTodos, displayTodos]);
 
   const completeTodoMutation = useMutation({
     mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
@@ -135,7 +167,7 @@ function TodoBoard({
   });
   return (
     <div className="flex flex-row px-2 overflow-auto h-full">
-      {groupedTodos?.map((group) => (
+      {displayTodos?.map((group) => (
         <React.Fragment key={group.key}>
           <div className="w-60 h-full flex-shrink-0 flex flex-col">
             <div className="flex flex-row gap-2 items-center pb-2 flex-shrink-0 ml-4">
@@ -157,7 +189,12 @@ function TodoBoard({
               {group.todos.map((todo) => (
                 <Card
                   key={todo.id}
-                  className="rounded-sm border-0 ring-1 ring-border overflow-hidden p-0 flex-shrink-0"
+                  className={cn(
+                    "rounded-sm border-0 ring-1 ring-border overflow-hidden p-0 flex-shrink-0 transition-all duration-300 ease-out",
+                    animatingOut.has(todo.id) 
+                      ? "opacity-0 translate-x-4 scale-95" 
+                      : "opacity-100 translate-x-0 scale-100"
+                  )}
                 >
                   <Link
                     to="/todos/$todoId"
