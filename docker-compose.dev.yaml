@@ -58,6 +58,7 @@ services:
       - "8080:8080"
     volumes:
       - .:/app
+      - ~/.config/gcloud:/root/.config/gcloud:ro
     networks:
       - odot-network
     healthcheck:

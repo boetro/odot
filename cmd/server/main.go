@@ -37,6 +37,7 @@ import (
 	"github.com/boetro/odot/internal/config"
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
+	"github.com/boetro/odot/internal/vision"
 	"github.com/boetro/odot/internal/webpush"
 	"github.com/boetro/odot/ui"
 	"github.com/gin-gonic/gin"
@@ -80,6 +81,12 @@ func main() {
 	// Initialize webpush service
 	pushService := webpush.NewService(vapidKeys, cfg.VAPIDSubject)
 
+	// Initialize vision service
+	visionService, err := vision.NewGoogleGeminiVisionClient(ctx, cfg)
+	if err != nil {
+		logger.Fatal("Failed to initialize vision service", "error", err)
+	}
+
 	// Set up Gin router
 	router := gin.New()
 	router.Use(gin.Recovery())
@@ -88,7 +95,7 @@ func main() {
 	docs.SwaggerInfo.BasePath = "/"
 
 	// Register all routes
-	api.RegisterRoutes(router, pool, queries, cfg, logger, pushService)
+	api.RegisterRoutes(router, pool, queries, cfg, logger, pushService, visionService)
 	// Add docs routes
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 	// Setup SPA fallback (must be last)

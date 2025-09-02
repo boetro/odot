@@ -23,6 +23,7 @@ type Config struct {
 	ServiceName             string
 	CollectorURL            string
 	Insecure                bool
+	GeminiAPIKey            string
 }
 
 // Load reads configuration from environment variables
@@ -101,6 +102,11 @@ func Load() (*Config, error) {
 		serviceName = "odot"
 	}
 
+	geminiAPIKey := os.Getenv("GEMINI_API_KEY")
+	if geminiAPIKey == "" {
+		return nil, fmt.Errorf("GEMINI_API_KEY environment variable is required")
+	}
+
 	return &Config{
 		Port:                    port,
 		LogLevel:                logLevel,
@@ -117,5 +123,6 @@ func Load() (*Config, error) {
 		Insecure:                ins,
 		ServiceName:             serviceName,
 		CollectorURL:            collectorURL,
+		GeminiAPIKey:            geminiAPIKey,
 	}, nil
 }

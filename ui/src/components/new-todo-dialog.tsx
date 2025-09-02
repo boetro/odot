@@ -13,7 +13,10 @@ import ProjectDropdown from "./project-dropdown";
 import DateDropdown from "./date-dropdown";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { listProjectTodos, listUserTodos } from "@/lib/queries/keys";
+import { imageQueries } from "@/lib/queries/images";
 import { ProseMirrorEditor } from "./prosemirror-editor";
+import { ScanEye, Loader2 } from "lucide-react";
+import { SmallButton } from "./small-button";
 
 function combineDate(date: Date | undefined, timeStr: string | undefined) {
   if (!date) return undefined;
@@ -38,8 +41,10 @@ export function NewTodoDialog({
   initialProject?: Project | null | undefined;
 }) {
   const titleRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [createMore, setCreateMore] = useState(false);
+  const [isParsingImage, setIsParsingImage] = useState(false);
 
   const [pendingTodo, setPendingTodo] = useState<{
     title: string;
@@ -123,6 +128,37 @@ export function NewTodoDialog({
       durationMinutes: "",
       project: initialProject || undefined,
     });
+  }
+
+  function handleImageToTextClick() {
+    fileInputRef.current?.click();
+  }
+
+  async function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith("image/")) {
+      try {
+        setIsParsingImage(true);
+        const response = await imageQueries.imageToText().queryFn(file);
+
+        // Append the extracted text to the existing description
+        if (response.text && response.text.length > 0) {
+          const extractedText = response.text;
+          const currentDescription = pendingTodo.description;
+          const newDescription = currentDescription
+            ? `${currentDescription}\n\n${extractedText}`
+            : extractedText;
+          setPendingTodo({
+            ...pendingTodo,
+            description: newDescription,
+          });
+        }
+      } catch (error) {
+        console.error("Error extracting text from image:", error);
+      } finally {
+        setIsParsingImage(false);
+      }
+    }
   }
 
   useEffect(() => {
@@ -232,6 +268,24 @@ export function NewTodoDialog({
                   durationMinutes: duration,
                 });
               }}
+            />
+            <SmallButton
+              onClick={handleImageToTextClick}
+              disabled={isParsingImage}
+            >
+              {isParsingImage ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <ScanEye />
+              )}
+              {isParsingImage ? "Parsing..." : "Image to Text"}
+            </SmallButton>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              style={{ display: "none" }}
             />
             {/* <SmallButton>
               <CircleAlert />

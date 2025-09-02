@@ -7,6 +7,7 @@ import (
 	"github.com/boetro/odot/internal/config"
 	"github.com/boetro/odot/internal/db"
 	"github.com/boetro/odot/internal/logger"
+	"github.com/boetro/odot/internal/vision"
 	"github.com/boetro/odot/internal/webpush"
 	"github.com/boetro/odot/ui"
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,7 @@ import (
 )
 
 // RegisterRoutes sets up all API route
-func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, cfg *config.Config, logger logger.Logger, pushService *webpush.Service) {
+func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, cfg *config.Config, logger logger.Logger, pushService *webpush.Service, visionService vision.VisionService) {
 	// Add common middleware
 	r.Use(middleware.RequestLogger(logger))
 	r.Use(middleware.CORS())
@@ -69,6 +70,11 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 			// Protected endpoints
 			protected.POST("/push/subscribe", pushHandler.Subscribe)
 			protected.POST("/push/send", pushHandler.SendNotification)
+		}
+		// Image handler
+		{
+			imageHandler := handlers.NewImageHandler(visionService, logger)
+			protected.POST("/image/text", imageHandler.ImageToText)
 		}
 	}
 }
