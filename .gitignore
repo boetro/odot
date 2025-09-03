@@ -34,3 +34,4 @@ tmp/
 bin
 
 ui/dist
+.claude

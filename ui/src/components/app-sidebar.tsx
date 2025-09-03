@@ -291,50 +291,53 @@ function ProjectTree({
       <SidebarMenuButton
         tooltip={projectHierarchy.project.name}
         isActive={`/projects/${projectHierarchy.project.id}` === loc.pathname}
-        className="flex justify-between p-0 px-2 group"
+        asChild
+        className="group/item"
       >
-        <Link
-          to="/projects/$projectId"
-          params={{ projectId: projectHierarchy.project.id.toString() }}
-          className="flex items-center gap-2 w-full"
-        >
-          <Box
-            style={{ color: projectHierarchy.project.color }}
-            className="size-4"
+        <span className="flex justify-between p-0 px-2">
+          <Link
+            to="/projects/$projectId"
+            params={{ projectId: projectHierarchy.project.id.toString() }}
+            className="flex items-center gap-2 w-full"
+          >
+            <Box
+              style={{ color: projectHierarchy.project.color }}
+              className="size-4"
+            />
+            <span className="w-full flex">{projectHierarchy.project.name}</span>
+          </Link>
+          <DropdownMenu onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`dark:hover:bg-background/30 size-6 transition-opacity ${
+                  updateProjectOpen || dropdownOpen
+                    ? "opacity-100"
+                    : "opacity-0 group-hover/item:opacity-100"
+                }`}
+              >
+                <Ellipsis />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" className="text-xs">
+              <DropdownMenuItem onClick={() => setUpdateProjectOpen(true)}>
+                <Edit />
+                Edit
+              </DropdownMenuItem>
+              {/*<DropdownMenuItem variant="destructive">
+                     <Trash />
+                     Delete
+                   </DropdownMenuItem>*/}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <ProjectDialog
+            projects={allProjects}
+            open={updateProjectOpen}
+            setOpen={setUpdateProjectOpen}
+            initialProject={projectHierarchy.project}
           />
-          <span className="w-full flex">{projectHierarchy.project.name}</span>
-        </Link>
-        <DropdownMenu onOpenChange={setDropdownOpen}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              size="icon"
-              variant="ghost"
-              className={`dark:hover:bg-background/30 size-6 transition-opacity ${
-                updateProjectOpen || dropdownOpen
-                  ? "opacity-100"
-                  : "opacity-0 group-hover:opacity-100"
-              }`}
-            >
-              <Ellipsis />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="right" className="text-xs">
-            <DropdownMenuItem onClick={() => setUpdateProjectOpen(true)}>
-              <Edit />
-              Edit
-            </DropdownMenuItem>
-            {/*<DropdownMenuItem variant="destructive">
-              <Trash />
-              Delete
-            </DropdownMenuItem>*/}
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <ProjectDialog
-          projects={allProjects}
-          open={updateProjectOpen}
-          setOpen={setUpdateProjectOpen}
-          initialProject={projectHierarchy.project}
-        />
+        </span>
       </SidebarMenuButton>
     );
   }
@@ -352,46 +355,49 @@ function ProjectTree({
             isActive={
               `/projects/${projectHierarchy.project.id}` === loc.pathname
             }
-            className="flex justify-between flex-row-reverse p-0 px-2 group"
+            asChild
+            className="group/item"
           >
-            <ChevronRight className="transition-transform" />
-            <DropdownMenu onOpenChange={setDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className={`dark:hover:bg-background/30 size-6 transition-opacity ${
-                    updateProjectOpen || dropdownOpen
-                      ? "opacity-100"
-                      : "opacity-0 group-hover:opacity-100"
-                  }`}
+            <span className="flex justify-between flex-row-reverse p-0 px-2">
+              <ChevronRight className="transition-transform" />
+              <DropdownMenu onOpenChange={setDropdownOpen}>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className={`dark:hover:bg-background/30 size-6 transition-opacity ${
+                      updateProjectOpen || dropdownOpen
+                        ? "opacity-100"
+                        : "opacity-0 group-hover/item:opacity-100"
+                    }`}
+                  >
+                    <Ellipsis />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" className="text-xs">
+                  <DropdownMenuItem onClick={() => setUpdateProjectOpen(true)}>
+                    <Edit />
+                    Edit
+                  </DropdownMenuItem>
+                  {/*<DropdownMenuItem variant="destructive">
+                    <Trash />
+                    Delete
+                  </DropdownMenuItem>*/}
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <span className="flex justify-between items-center gap-2 w-full h-full">
+                <Link
+                  to="/projects/$projectId"
+                  params={{ projectId: projectHierarchy.project.id.toString() }}
+                  className="flex items-center gap-2 w-full h-full"
                 >
-                  <Ellipsis />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent side="right" className="text-xs">
-                <DropdownMenuItem onClick={() => setUpdateProjectOpen(true)}>
-                  <Edit />
-                  Edit
-                </DropdownMenuItem>
-                {/*<DropdownMenuItem variant="destructive">
-                  <Trash />
-                  Delete
-                </DropdownMenuItem>*/}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <span className="flex justify-between items-center gap-2 w-full h-full">
-              <Link
-                to="/projects/$projectId"
-                params={{ projectId: projectHierarchy.project.id.toString() }}
-                className="flex items-center gap-2 w-full h-full"
-              >
-                <Box
-                  style={{ color: projectHierarchy.project.color }}
-                  className="size-4"
-                />
-                <span>{projectHierarchy.project.name}</span>
-              </Link>
+                  <Box
+                    style={{ color: projectHierarchy.project.color }}
+                    className="size-4"
+                  />
+                  <span>{projectHierarchy.project.name}</span>
+                </Link>
+              </span>
             </span>
           </SidebarMenuButton>
         </CollapsibleTrigger>
