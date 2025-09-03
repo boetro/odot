@@ -40,8 +40,9 @@ func SetupSPAFallback(engine *gin.Engine) {
 	
 	// SPA fallback: serve index.html for all routes that don't match static files or API routes
 	engine.NoRoute(func(c *gin.Context) {
-		// Don't serve index.html for API routes or other backend routes
+		// Don't serve index.html for API routes, static assets, or other backend routes
 		if strings.HasPrefix(c.Request.URL.Path, "/api") ||
+		   strings.HasPrefix(c.Request.URL.Path, "/assets") ||
 		   strings.HasPrefix(c.Request.URL.Path, "/health") ||
 		   strings.HasPrefix(c.Request.URL.Path, "/swagger") {
 			c.JSON(http.StatusNotFound, gin.H{"error": "Route not found"})
