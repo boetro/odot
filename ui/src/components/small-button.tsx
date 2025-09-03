@@ -8,8 +8,9 @@ export const SmallButton = forwardRef<
     children: React.ReactNode;
     onClick?: () => void;
     className?: string;
+    disabled?: boolean;
   }
->(({ children, onClick, className, ...props }, ref) => {
+>(({ children, onClick, className, disabled, ...props }, ref) => {
   return (
     <Button
       ref={ref}
@@ -19,6 +20,7 @@ export const SmallButton = forwardRef<
         className,
       )}
       onClick={onClick}
+      disabled={disabled}
       {...props}
     >
       {children}
