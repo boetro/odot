@@ -226,6 +226,7 @@ function InnerLayout({
         open={newTodoOpen}
         setOpen={setNewTodoOpen}
         projects={projects || []}
+        initialProject={selectedProject}
       />
     </SidebarProvider>
   );

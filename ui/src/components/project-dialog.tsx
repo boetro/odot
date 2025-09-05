@@ -97,7 +97,9 @@ export function ProjectDialog({
 
   function resetForm() {
     if (initialProject) {
-      const initialColor = COMMON_COLORS.find(c => c.hex === initialProject.color);
+      const initialColor = COMMON_COLORS.find(
+        (c) => c.hex === initialProject.color,
+      );
       setPendingProject({
         name: initialProject.name,
         description: initialProject.description || "",
@@ -139,7 +141,9 @@ export function ProjectDialog({
     parentProject: Project | undefined;
   }>(() => {
     if (initialProject) {
-      const initialColor = COMMON_COLORS.find(c => c.hex === initialProject.color);
+      const initialColor = COMMON_COLORS.find(
+        (c) => c.hex === initialProject.color,
+      );
       return {
         name: initialProject.name,
         description: initialProject.description || "",
@@ -234,7 +238,7 @@ export function ProjectDialog({
       }}
     >
       <DialogContent
-        className="sm:max-w-[60%] p-0 pt-4 overflow-y-auto"
+        className="sm:max-w-[60%] p-0 pt-4 top-[25%] md:top-[50%]"
         showCloseButton={false}
         aria-describedby="New Project Dialog"
       >
@@ -242,7 +246,9 @@ export function ProjectDialog({
           <DialogTitle>
             <input
               type="text"
-              placeholder={initialProject ? "Edit Project Name" : "Project Name"}
+              placeholder={
+                initialProject ? "Edit Project Name" : "Project Name"
+              }
               data-slot="input"
               ref={projNameRef}
               className="outline-none w-full"
@@ -337,13 +343,20 @@ export function ProjectDialog({
             <Button
               type="submit"
               size="sm"
-              disabled={!pendingProject.name || createMutation.isPending || updateMutation.isPending}
+              disabled={
+                !pendingProject.name ||
+                createMutation.isPending ||
+                updateMutation.isPending
+              }
               onClick={handleSubmit}
             >
-              {initialProject 
-                ? (updateMutation.isPending ? "Updating..." : "Update")
-                : (createMutation.isPending ? "Creating..." : "Create")
-              }
+              {initialProject
+                ? updateMutation.isPending
+                  ? "Updating..."
+                  : "Update"
+                : createMutation.isPending
+                  ? "Creating..."
+                  : "Create"}
             </Button>
           </div>
         </DialogFooter>

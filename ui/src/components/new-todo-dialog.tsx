@@ -186,11 +186,17 @@ export function NewTodoDialog({
         event.preventDefault();
         setOpen(true);
       }
+
+      // Handle Cmd/Ctrl + Enter to create todo
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter" && open) {
+        event.preventDefault();
+        createTodo();
+      }
     };
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [setOpen]);
+  }, [setOpen, open, createTodo]);
 
   return (
     <Dialog
