@@ -17,6 +17,7 @@ type Config struct {
 	GoogleClientSecret      string
 	GoogleRedirectURI       string
 	LoginSuccessRedirectURI string
+	CORSAllowedOrigins      string
 	VAPIDPublicKey          string
 	VAPIDPrivateKey         string
 	VAPIDSubject            string
@@ -73,6 +74,11 @@ func Load() (*Config, error) {
 		loginSuccessURI = "http://localhost:5173"
 	}
 
+	corsAllowedOrigins := os.Getenv("CORS_ALLOWED_ORIGINS")
+	if corsAllowedOrigins == "" {
+		corsAllowedOrigins = "http://localhost:5173"
+	}
+
 	vapidPublicKey := os.Getenv("VAPID_PUBLIC_KEY")
 	if vapidPublicKey == "" {
 		return nil, fmt.Errorf("VAPID_PUBLIC_KEY environment variable is required")
@@ -117,6 +123,7 @@ func Load() (*Config, error) {
 		GoogleClientSecret:      googleClientSecret,
 		GoogleRedirectURI:       googleRedirectURI,
 		LoginSuccessRedirectURI: loginSuccessURI,
+		CORSAllowedOrigins:      corsAllowedOrigins,
 		VAPIDPublicKey:          vapidPublicKey,
 		VAPIDPrivateKey:         vapidPrivateKey,
 		VAPIDSubject:            vapidSubject,

@@ -1,3 +1,4 @@
+import { apiRequest } from "../api";
 import type { Project } from "../types";
 import { listProjectsKeys } from "./keys";
 
@@ -5,7 +6,7 @@ export const projectQueries = {
   listProjects: () => ({
     queryKey: listProjectsKeys,
     queryFn: async () => {
-      return await fetch("/api/projects", {
+      return await apiRequest("/api/projects", {
         credentials: "include",
       }).then((res) => {
         if (!res.ok) {

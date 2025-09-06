@@ -1,5 +1,7 @@
 // Push Notifications Utilities
 
+import { apiRequest } from "./api";
+
 export interface PushSubscriptionData {
   endpoint: string;
   keys: {
@@ -44,7 +46,7 @@ class PushNotificationService {
       await navigator.serviceWorker.ready;
 
       // Get VAPID public key from server
-      const response = await fetch("/api/push/vapid-public-key");
+      const response = await apiRequest("/api/push/vapid-public-key");
       if (!response.ok) {
         throw new Error("Failed to get VAPID public key");
       }
@@ -98,7 +100,7 @@ class PushNotificationService {
       };
 
       // Send subscription to server
-      const response = await fetch("/api/push/subscribe", {
+      const response = await apiRequest("/api/push/subscribe", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -170,7 +172,7 @@ class PushNotificationService {
     try {
       console.log("Sending test notification:", payload);
 
-      const response = await fetch("/api/push/send", {
+      const response = await apiRequest("/api/push/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

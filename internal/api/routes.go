@@ -18,7 +18,7 @@ import (
 func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, cfg *config.Config, logger logger.Logger, pushService *webpush.Service, visionService vision.VisionService) {
 	// Add common middleware
 	r.Use(middleware.RequestLogger(logger))
-	r.Use(middleware.CORS())
+	r.Use(middleware.CORS(cfg))
 
 	ui.AddRoutes(r)
 

@@ -1,3 +1,4 @@
+import { apiRequest } from "../api";
 import type { Todo } from "../types";
 import { listProjectTodos, listUserTodos, getTodo } from "./keys";
 
@@ -5,7 +6,7 @@ export const todoQueries = {
   listUserTodos: () => ({
     queryKey: listUserTodos,
     queryFn: async () => {
-      return await fetch("/api/todos", {
+      return await apiRequest("/api/todos", {
         credentials: "include",
       })
         .then((res) => {
@@ -28,7 +29,7 @@ export const todoQueries = {
   listProjectTodos: (projectId: number) => ({
     queryKey: listProjectTodos(projectId),
     queryFn: async () => {
-      return await fetch(`/api/todos?project_id=${projectId}`, {
+      return await apiRequest(`/api/todos?project_id=${projectId}`, {
         credentials: "include",
       })
         .then((res) => {
@@ -50,7 +51,7 @@ export const todoQueries = {
   getTodo: (todoId: number | null) => ({
     queryKey: getTodo(todoId!),
     queryFn: async () => {
-      return await fetch(`/api/todos/${todoId}`, {
+      return await apiRequest(`/api/todos/${todoId}`, {
         credentials: "include",
       })
         .then((res) => {

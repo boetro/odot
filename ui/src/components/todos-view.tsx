@@ -53,6 +53,7 @@ import {
   type Ordering,
   type TodoViewState,
 } from "@/hooks/todos-view-store";
+import { apiRequest } from "@/lib/api";
 
 type TodoWithProject = Todo & {
   project?: Project;
@@ -106,8 +107,9 @@ function TodoBoard({
   // TODO: figure out a way to remove this duplication
   const queryClient = useQueryClient();
   const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
-  const [displayTodos, setDisplayTodos] = useState<typeof groupedTodos>(groupedTodos);
-  
+  const [displayTodos, setDisplayTodos] =
+    useState<typeof groupedTodos>(groupedTodos);
+
   // Track todos that are disappearing and animate them out
   React.useEffect(() => {
     if (!displayTodos || !groupedTodos) {
@@ -117,16 +119,20 @@ function TodoBoard({
 
     // Find todos that were in displayTodos but are not in current groupedTodos
     const currentTodoIds = new Set(
-      groupedTodos.flatMap(group => group.todos.map(todo => todo.id))
+      groupedTodos.flatMap((group) => group.todos.map((todo) => todo.id)),
     );
-    const displayTodoIds = displayTodos.flatMap(group => group.todos.map(todo => todo.id));
-    
-    const disappearingTodoIds = displayTodoIds.filter(id => !currentTodoIds.has(id));
-    
+    const displayTodoIds = displayTodos.flatMap((group) =>
+      group.todos.map((todo) => todo.id),
+    );
+
+    const disappearingTodoIds = displayTodoIds.filter(
+      (id) => !currentTodoIds.has(id),
+    );
+
     if (disappearingTodoIds.length > 0) {
       // Start animation for disappearing todos
       setAnimatingOut(new Set(disappearingTodoIds));
-      
+
       // After animation duration, update displayTodos to match current groupedTodos
       setTimeout(() => {
         setDisplayTodos(groupedTodos);
@@ -140,7 +146,7 @@ function TodoBoard({
 
   const completeTodoMutation = useMutation({
     mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
-      return fetch(`/api/todos/${todo.id}`, {
+      return apiRequest(`/api/todos/${todo.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -191,9 +197,9 @@ function TodoBoard({
                   key={todo.id}
                   className={cn(
                     "rounded-sm border-0 ring-1 ring-border overflow-hidden p-0 flex-shrink-0 transition-all duration-300 ease-out",
-                    animatingOut.has(todo.id) 
-                      ? "opacity-0 translate-x-4 scale-95" 
-                      : "opacity-100 translate-x-0 scale-100"
+                    animatingOut.has(todo.id)
+                      ? "opacity-0 translate-x-4 scale-95"
+                      : "opacity-100 translate-x-0 scale-100",
                   )}
                 >
                   <Link
@@ -297,9 +303,11 @@ function TodoList({
   viewState: TodoViewState;
 }) {
   const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
-  const [displayGroupedTodos, setDisplayGroupedTodos] = useState<typeof groupedTodos>(groupedTodos);
-  const [displaySortedTodos, setDisplaySortedTodos] = useState<TodoWithProject[]>(sortedTodos);
-  
+  const [displayGroupedTodos, setDisplayGroupedTodos] =
+    useState<typeof groupedTodos>(groupedTodos);
+  const [displaySortedTodos, setDisplaySortedTodos] =
+    useState<TodoWithProject[]>(sortedTodos);
+
   // Track todos that are disappearing and animate them out
   React.useEffect(() => {
     if (groupedTodos === null) {
@@ -309,14 +317,16 @@ function TodoList({
         return;
       }
 
-      const currentTodoIds = new Set(sortedTodos.map(todo => todo.id));
-      const displayTodoIds = displaySortedTodos.map(todo => todo.id);
-      
-      const disappearingTodoIds = displayTodoIds.filter(id => !currentTodoIds.has(id));
-      
+      const currentTodoIds = new Set(sortedTodos.map((todo) => todo.id));
+      const displayTodoIds = displaySortedTodos.map((todo) => todo.id);
+
+      const disappearingTodoIds = displayTodoIds.filter(
+        (id) => !currentTodoIds.has(id),
+      );
+
       if (disappearingTodoIds.length > 0) {
         setAnimatingOut(new Set(disappearingTodoIds));
-        
+
         setTimeout(() => {
           setDisplaySortedTodos(sortedTodos);
           setAnimatingOut(new Set());
@@ -332,15 +342,19 @@ function TodoList({
       }
 
       const currentTodoIds = new Set(
-        groupedTodos.flatMap(group => group.todos.map(todo => todo.id))
+        groupedTodos.flatMap((group) => group.todos.map((todo) => todo.id)),
       );
-      const displayTodoIds = displayGroupedTodos.flatMap(group => group.todos.map(todo => todo.id));
-      
-      const disappearingTodoIds = displayTodoIds.filter(id => !currentTodoIds.has(id));
-      
+      const displayTodoIds = displayGroupedTodos.flatMap((group) =>
+        group.todos.map((todo) => todo.id),
+      );
+
+      const disappearingTodoIds = displayTodoIds.filter(
+        (id) => !currentTodoIds.has(id),
+      );
+
       if (disappearingTodoIds.length > 0) {
         setAnimatingOut(new Set(disappearingTodoIds));
-        
+
         setTimeout(() => {
           setDisplayGroupedTodos(groupedTodos);
           setAnimatingOut(new Set());
@@ -354,7 +368,11 @@ function TodoList({
     <div className="flex flex-col w-full h-full overflow-y-auto">
       {displayGroupedTodos === null &&
         displaySortedTodos.map((todo) => (
-          <TodoItem key={todo.id} todo={todo} isAnimatingOut={animatingOut.has(todo.id)} />
+          <TodoItem
+            key={todo.id}
+            todo={todo}
+            isAnimatingOut={animatingOut.has(todo.id)}
+          />
         ))}
       {displayGroupedTodos !== null &&
         displayGroupedTodos.map((group) => (
@@ -396,7 +414,11 @@ function TodoList({
             </CollapsibleTrigger>
             <CollapsibleContent>
               {group.todos.map((todo) => (
-                <TodoItem key={todo.id} todo={todo} isAnimatingOut={animatingOut.has(todo.id)} />
+                <TodoItem
+                  key={todo.id}
+                  todo={todo}
+                  isAnimatingOut={animatingOut.has(todo.id)}
+                />
               ))}
             </CollapsibleContent>
           </Collapsible>
@@ -405,12 +427,18 @@ function TodoList({
   );
 }
 
-function TodoItem({ todo, isAnimatingOut = false }: { todo: TodoWithProject; isAnimatingOut?: boolean }) {
+function TodoItem({
+  todo,
+  isAnimatingOut = false,
+}: {
+  todo: TodoWithProject;
+  isAnimatingOut?: boolean;
+}) {
   const queryClient = useQueryClient();
 
   const completeTodoMutation = useMutation({
     mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
-      return fetch(`/api/todos/${todo.id}`, {
+      return apiRequest(`/api/todos/${todo.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -437,13 +465,13 @@ function TodoItem({ todo, isAnimatingOut = false }: { todo: TodoWithProject; isA
   });
 
   return (
-    <div 
-      key={todo.id} 
+    <div
+      key={todo.id}
       className={cn(
         "flex items-center gap-2 hover:bg-muted p-2 transition-all duration-300 ease-out",
-        isAnimatingOut 
-          ? "opacity-0 translate-x-4 scale-95" 
-          : "opacity-100 translate-x-0 scale-100"
+        isAnimatingOut
+          ? "opacity-0 translate-x-4 scale-95"
+          : "opacity-100 translate-x-0 scale-100",
       )}
     >
       <Checkbox

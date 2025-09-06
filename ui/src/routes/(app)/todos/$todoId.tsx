@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { ProseMirrorEditor } from "@/components/prosemirror-editor";
+import { apiRequest } from "@/lib/api";
 
 export const Route = createFileRoute("/(app)/todos/$todoId")({
   component: RouteComponent,
@@ -27,7 +28,7 @@ function RouteComponent() {
 
   const updateTodoMutation = useMutation({
     mutationFn: ({ todo }: { todo: Todo }) => {
-      return fetch(`/api/todos/${todo.id}`, {
+      return apiRequest(`/api/todos/${todo.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

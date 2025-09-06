@@ -2,18 +2,22 @@
 package middleware
 
 import (
-	"os"
-
+	"github.com/boetro/odot/internal/config"
 	"github.com/gin-gonic/gin"
 )
 
 // CORS middleware handles Cross-Origin Resource Sharing
-func CORS() gin.HandlerFunc {
+func CORS(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Allow frontend dev server in development
-		allowedOrigins := "*"
-		if os.Getenv("ENVIRONMENT") == "development" {
-			allowedOrigins = "http://localhost:5173"
+		origin := c.Request.Header.Get("Origin")
+
+		// Start with configured allowed origins
+		allowedOrigins := cfg.CORSAllowedOrigins
+
+		// Allow Capacitor app origins
+		if origin == "capacitor://localhost" || origin == "ionic://localhost" ||
+			origin == "http://localhost" || origin == "https://localhost" {
+			allowedOrigins = origin
 		}
 
 		c.Writer.Header().Set("Access-Control-Allow-Origin", allowedOrigins)

@@ -14,6 +14,7 @@ import { listProjectsKeys } from "@/lib/queries/keys";
 import type { Project } from "@/lib/types";
 import { SmallButton } from "./small-button";
 import ProjectDropdown from "./project-dropdown";
+import { apiRequest } from "@/lib/api";
 
 const COMMON_COLORS = [
   { name: "Red", hex: "#ef4444" },
@@ -49,7 +50,7 @@ export function ProjectDialog({
       color?: string;
       parent_project_id?: number;
     }) => {
-      return fetch("/api/projects", {
+      return apiRequest("/api/projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,7 +75,7 @@ export function ProjectDialog({
       color?: string;
       parent_project_id?: number;
     }) => {
-      return fetch(`/api/projects/${initialProject?.id}`, {
+      return apiRequest(`/api/projects/${initialProject?.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

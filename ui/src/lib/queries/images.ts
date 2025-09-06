@@ -1,3 +1,5 @@
+import { apiRequest } from "../api";
+
 export type ImageToTextResponse = {
   text: string;
 };
@@ -11,7 +13,7 @@ export const imageQueries = {
       const formData = new FormData();
       formData.append("image", file);
 
-      return await fetch("/api/image/text", {
+      return await apiRequest("/api/image/text", {
         method: "POST",
         credentials: "include",
         body: formData,

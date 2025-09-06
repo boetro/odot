@@ -3,7 +3,7 @@ import React from "react";
 import type { User } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { AuthContext } from "./auth-context-definition";
-import { refreshToken } from "@/lib/api";
+import { API_BASE_URL, apiRequest, refreshToken } from "@/lib/api";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -55,8 +55,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const tryRefreshAndRetry = async () => {
       try {
         const refreshSuccess = await refreshToken();
+        const url = `${API_BASE_URL}/api/me`;
         if (refreshSuccess) {
-          const retryResponse = await fetch("/api/me", {
+          const retryResponse = await fetch(url, {
             credentials: "include",
           });
 
@@ -130,32 +131,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-async function apiRequest(
-  url: string,
-  options: RequestInit = {},
-): Promise<Response> {
-  const makeRequest = () =>
-    fetch(url, {
-      ...options,
-      credentials: "include",
-    });
-
-  let response = await makeRequest();
-
-  // If we get a 401, try to refresh the token
-  if (response.status === 401) {
-    const refreshSuccess = await refreshToken();
-
-    if (refreshSuccess) {
-      // Retry the original request with the new token
-      response = await makeRequest();
-    } else {
-      // Refresh failed, redirect to login
-      throw new Error("Authentication failed");
-    }
-  }
-
-  return response;
 }

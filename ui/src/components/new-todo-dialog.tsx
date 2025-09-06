@@ -17,6 +17,7 @@ import { imageQueries } from "@/lib/queries/images";
 import { ProseMirrorEditor } from "./prosemirror-editor";
 import { ScanEye, Loader2 } from "lucide-react";
 import { SmallButton } from "./small-button";
+import { apiRequest } from "@/lib/api";
 
 function combineDate(date: Date | undefined, timeStr: string | undefined) {
   if (!date) return undefined;
@@ -72,7 +73,7 @@ export function NewTodoDialog({
       parent_todo_id?: string;
     }) => {
       console.log("Sending todo request: ", newTodo);
-      return fetch("/api/todos", {
+      return apiRequest("/api/todos", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
