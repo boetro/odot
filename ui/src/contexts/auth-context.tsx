@@ -3,7 +3,10 @@ import React from "react";
 import type { User } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { AuthContext } from "./auth-context-definition";
-import { API_BASE_URL, apiRequest, refreshToken } from "@/lib/api";
+import { apiRequest, refreshToken } from "@/lib/api";
+import { TokenStorage } from "@/lib/token-storage";
+import { isNative } from "@/lib/platform";
+import { useOAuthCallback } from "@/hooks/use-oauth-callback";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -19,12 +22,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const success = await refreshToken();
           if (!success) {
-            setIsAuthenticated(false);
-            setUser(null);
+            await clearAuthState();
           }
         } catch {
-          setIsAuthenticated(false);
-          setUser(null);
+          await clearAuthState();
         }
       }
 
@@ -43,9 +44,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     };
 
-    const setUnauthenticated = () => {
+    const clearAuthState = async () => {
       setIsAuthenticated(false);
       setUser(null);
+      if (isNative) {
+        await TokenStorage.clearTokens();
+      }
       return {
         user: null,
         isAuthenticated: false,
@@ -55,28 +59,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const tryRefreshAndRetry = async () => {
       try {
         const refreshSuccess = await refreshToken();
-        const url = `${API_BASE_URL}/api/me`;
         if (refreshSuccess) {
-          const retryResponse = await fetch(url, {
-            credentials: "include",
-          });
-
-          if (retryResponse.ok) {
-            const userData = await retryResponse.json();
+          const response = await apiRequest("/api/me");
+          if (response.ok) {
+            const userData = await response.json();
             return setAuthenticatedUser(userData);
           }
         }
       } catch {
         // Refresh failed
       }
-      return setUnauthenticated();
+      return await clearAuthState();
     };
 
     try {
-      // Call your backend to verify the JWT in the cookie
-      const response = await apiRequest("/api/me", {
-        credentials: "include", // Important for cookies
-      });
+      // For mobile, check if we have valid stored tokens first
+      if (isNative) {
+        const hasTokens = await TokenStorage.hasValidTokens();
+        if (!hasTokens) {
+          return await clearAuthState();
+        }
+      }
+
+      // Call backend to verify authentication
+      const response = await apiRequest("/api/me");
 
       if (response.ok) {
         const userData = await response.json();
@@ -100,18 +106,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Handle successful OAuth login for mobile platforms
+  const handleMobileLogin = async (
+    accessToken: string,
+    refreshToken: string,
+    expiresAt: number,
+    userData: User,
+  ) => {
+    if (!isNative) {
+      console.warn("handleMobileLogin called on non-native platform");
+      return false;
+    }
+
+    try {
+      const success = await TokenStorage.storeTokens({
+        accessToken,
+        refreshToken,
+        expiresAt,
+      });
+
+      if (success) {
+        setUser(userData);
+        setIsAuthenticated(true);
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to handle mobile login:", error);
+    }
+    return false;
+  };
+
   const logout = async () => {
     try {
-      await fetch("/api/auth/logout", {
+      await apiRequest("/api/auth/logout", {
         method: "POST",
-        credentials: "include",
       });
       setIsAuthenticated(false);
       setUser(null);
+      if (isNative) {
+        await TokenStorage.clearTokens();
+      }
     } catch (error) {
       console.error("Logout failed:", error);
+      // Clear local state even if server call fails
+      setIsAuthenticated(false);
+      setUser(null);
+      if (isNative) {
+        await TokenStorage.clearTokens();
+      }
     }
   };
+
+  // Set up OAuth callback handler for mobile
+  useOAuthCallback(handleMobileLogin);
 
   useEffect(() => {
     checkAuth();
@@ -126,6 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         checkAuth,
+        handleMobileLogin,
       }}
     >
       {children}

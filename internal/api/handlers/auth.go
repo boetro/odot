@@ -4,8 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/boetro/odot/internal/auth"
@@ -68,6 +72,13 @@ func generateRandomState() string {
 		panic("failed to generate random state: " + err.Error())
 	}
 	return base64.URLEncoding.EncodeToString(b)
+}
+
+// Check if the request is from a mobile client (Capacitor)
+func isMobileClient(c *gin.Context) bool {
+	userAgent := c.GetHeader("User-Agent")
+	return strings.Contains(strings.ToLower(userAgent), "capacitor") ||
+		strings.Contains(strings.ToLower(userAgent), "android") && strings.Contains(strings.ToLower(userAgent), "odot")
 }
 
 // @Summary Login with Google
@@ -207,8 +218,43 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		true,                   // httpOnly (JS cannot access)
 	)
 
-	// Redirect to frontend with token or set secure cookie
-	c.Redirect(http.StatusTemporaryRedirect, h.config.LoginSuccessRedirectURI)
+	// Check if this is a mobile client and handle redirect accordingly
+	if isMobileClient(c) {
+		// Create user info struct
+		userInfo := GetUserResponse{
+			ID:                dbUser.UserID,
+			Email:             dbUser.Email,
+			ProfilePictureUrl: dbUser.ProfilePictureUrl.String,
+			TokenExpiresAt:    time.Now().Add(15 * time.Minute).Unix(),
+		}
+
+		// Encode user data
+		userDataBytes, err := json.Marshal(userInfo)
+		if err != nil {
+			h.logger.Error("Failed to marshal user data", err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal error"})
+			return
+		}
+
+		// Create deep link with tokens and user data
+		deepLinkURL := url.URL{
+			Scheme: "com.odot.app",
+			Host:   "oauth",
+			Path:   "/callback",
+		}
+
+		query := deepLinkURL.Query()
+		query.Set("access_token", tokenPair.AccessToken)
+		query.Set("refresh_token", tokenPair.RefreshToken)
+		query.Set("expires_at", fmt.Sprintf("%d", userInfo.TokenExpiresAt))
+		query.Set("user", string(userDataBytes))
+		deepLinkURL.RawQuery = query.Encode()
+
+		c.Redirect(http.StatusTemporaryRedirect, deepLinkURL.String())
+	} else {
+		// Redirect to frontend for web clients
+		c.Redirect(http.StatusTemporaryRedirect, h.config.LoginSuccessRedirectURI)
+	}
 }
 
 // @Summary Refresh authentication token

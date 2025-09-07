@@ -8,6 +8,12 @@ export interface AuthContextType {
   login: () => Promise<void>;
   logout: () => Promise<void>;
   checkAuth: () => Promise<{ isAuthenticated: boolean; user: User | null }>;
+  handleMobileLogin: (
+    accessToken: string,
+    refreshToken: string,
+    expiresAt: number,
+    userData: User,
+  ) => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType | null>(null);
