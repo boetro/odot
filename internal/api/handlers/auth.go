@@ -75,10 +75,18 @@ func generateRandomState() string {
 }
 
 // Check if the request is from a mobile client (Capacitor)
-func isMobileClient(c *gin.Context) bool {
+func (h *AuthHandler) isMobileClient(c *gin.Context) bool {
+	// First check for explicit mobile query parameter (most reliable)
+	mobileParam := c.Query("mobile")
+	if mobileParam == "true" {
+		return true
+	}
+
+	// Fallback to user agent detection
 	userAgent := c.GetHeader("User-Agent")
-	return strings.Contains(strings.ToLower(userAgent), "capacitor") ||
+	results := strings.Contains(strings.ToLower(userAgent), "capacitor") ||
 		strings.Contains(strings.ToLower(userAgent), "android") && strings.Contains(strings.ToLower(userAgent), "odot")
+	return results
 }
 
 // @Summary Login with Google
@@ -88,6 +96,10 @@ func isMobileClient(c *gin.Context) bool {
 // @Router /auth/google/login [get]
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 	state := generateRandomState() // Store this in session/cache
+
+	// Check if request is from mobile client and store in cookie
+	isMobile := h.isMobileClient(c)
+
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
 		"oauth_state", // name
@@ -98,6 +110,18 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		true,          // secure (true for HTTPS)
 		true,          // httpOnly
 	)
+
+	// Store mobile client flag
+	c.SetCookie(
+		"oauth_mobile",              // name
+		fmt.Sprintf("%t", isMobile), // value
+		600,                         // maxAge (10 minutes)
+		"/",                         // path
+		"",                          // domain (empty for current domain)
+		true,                        // secure (true for HTTPS)
+		true,                        // httpOnly
+	)
+
 	url := h.googleConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, url)
 }
@@ -218,8 +242,15 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		true,                   // httpOnly (JS cannot access)
 	)
 
-	// Check if this is a mobile client and handle redirect accordingly
-	if isMobileClient(c) {
+	// Check if this was a mobile client (stored during login)
+	mobileFlag, err := c.Cookie("oauth_mobile")
+	isMobileClient := err == nil && mobileFlag == "true"
+
+	// Clear the mobile client cookie
+	c.SetCookie("oauth_mobile", "", -1, "/", "", true, true)
+
+	if isMobileClient {
+		h.logger.Info("Mobile client detected")
 		// Create user info struct
 		userInfo := GetUserResponse{
 			ID:                dbUser.UserID,
@@ -250,8 +281,11 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		query.Set("user", string(userDataBytes))
 		deepLinkURL.RawQuery = query.Encode()
 
+		h.logger.Info("Redirecting mobile client to deep link", deepLinkURL.String())
+
 		c.Redirect(http.StatusTemporaryRedirect, deepLinkURL.String())
 	} else {
+		h.logger.Info("Redirecting web client to frontend")
 		// Redirect to frontend for web clients
 		c.Redirect(http.StatusTemporaryRedirect, h.config.LoginSuccessRedirectURI)
 	}

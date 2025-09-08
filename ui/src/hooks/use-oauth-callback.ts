@@ -15,7 +15,6 @@ export function useOAuthCallback(
 
     const handleDeepLink = async (event: URLOpenListenerEvent) => {
       const url = event.url;
-      console.log("Deep link received:", url);
 
       // Check if this is an OAuth callback
       if (url.startsWith("com.odot.app://oauth/callback")) {

@@ -14,21 +14,15 @@ const getApiBaseUrl = () => {
   if (typeof window !== "undefined" && isNative) {
     // For mobile apps, use the production API URL or configured URL
     const url =
-      import.meta.env.VITE_MOBILE_API_URL ||
-      import.meta.env.VITE_API_URL ||
-      "http://192.168.86.22:8080";
-    console.log("Using mobile API URL:", url);
+      import.meta.env.VITE_MOBILE_API_URL || import.meta.env.VITE_API_URL;
     return url;
   }
   // For web development, use relative URLs (proxy handles it)
   if (import.meta.env.DEV) {
-    console.log("Using dev mode (empty base URL for proxy)");
-    return "";
+    return import.meta.env.VITE_API_URL || "";
   }
   // For web production, use configured URL
-  const url = import.meta.env.VITE_API_URL || "";
-  console.log("Using web production API URL:", url);
-  return url;
+  return "";
 };
 
 export const API_BASE_URL = getApiBaseUrl();
@@ -140,9 +134,6 @@ export async function apiRequest(url: string, options: RequestInit = {}) {
       // Clear stored tokens on mobile and redirect to login
       if (isNative) {
         await TokenStorage.clearTokens();
-      }
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
       }
       throw new Error("Authentication failed");
     }

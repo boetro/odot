@@ -20,7 +20,7 @@ COPY ui/ ./
 RUN bun run build
 
 # Go Build stage
-FROM golang:1.24-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 
 # Install required packages for building
 RUN apk add --no-cache curl ca-certificates

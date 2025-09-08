@@ -1,5 +1,5 @@
-import { Preferences } from '@capacitor/preferences';
-import { isNative } from './platform';
+import { Preferences } from "@capacitor/preferences";
+import { isNative } from "./platform";
 
 export interface TokenPair {
   accessToken: string;
@@ -7,7 +7,7 @@ export interface TokenPair {
   expiresAt: number;
 }
 
-const TOKEN_KEY = 'auth_tokens';
+const TOKEN_KEY = "auth_tokens";
 
 /**
  * Secure token storage service that uses platform-appropriate storage
@@ -28,11 +28,11 @@ export class TokenStorage {
     try {
       await Preferences.set({
         key: TOKEN_KEY,
-        value: JSON.stringify(tokens)
+        value: JSON.stringify(tokens),
       });
       return true;
     } catch (error) {
-      console.error('Failed to store tokens:', error);
+      console.error("Failed to store tokens:", error);
       return false;
     }
   }
@@ -61,13 +61,13 @@ export class TokenStorage {
         // Access token expired, but keep refresh token for renewal
         return {
           ...tokens,
-          accessToken: '' // Clear expired access token
+          accessToken: "", // Clear expired access token
         };
       }
 
       return tokens;
     } catch (error) {
-      console.error('Failed to retrieve tokens:', error);
+      console.error("Failed to retrieve tokens:", error);
       return null;
     }
   }
@@ -91,7 +91,10 @@ export class TokenStorage {
   /**
    * Update only the access token and expiration
    */
-  static async updateAccessToken(accessToken: string, expiresAt: number): Promise<boolean> {
+  static async updateAccessToken(
+    accessToken: string,
+    expiresAt: number,
+  ): Promise<boolean> {
     if (!isNative) {
       return false;
     }
@@ -104,7 +107,7 @@ export class TokenStorage {
     return this.storeTokens({
       ...existingTokens,
       accessToken,
-      expiresAt
+      expiresAt,
     });
   }
 
@@ -119,7 +122,7 @@ export class TokenStorage {
     try {
       await Preferences.remove({ key: TOKEN_KEY });
     } catch (error) {
-      console.error('Failed to clear tokens:', error);
+      console.error("Failed to clear tokens:", error);
     }
   }
 
@@ -128,6 +131,6 @@ export class TokenStorage {
    */
   static async hasValidTokens(): Promise<boolean> {
     const tokens = await this.getTokens();
-    return tokens !== null && tokens.refreshToken !== '';
+    return tokens !== null && tokens.refreshToken !== "";
   }
 }

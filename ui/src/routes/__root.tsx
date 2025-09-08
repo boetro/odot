@@ -12,13 +12,13 @@ interface RouterContext {
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: () => (
-    <>
+    <div className="safe-area-container">
       <ThemeProvider defaultTheme="dark" storageKey="odot-ui-theme">
         <Outlet />
       </ThemeProvider>
 
       <TanStackRouterDevtools position="bottom-right" />
       <ReactQueryDevtools initialIsOpen={false} buttonPosition="top-right" />
-    </>
+    </div>
   ),
 });

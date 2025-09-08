@@ -12,6 +12,16 @@ const config: CapacitorConfig = {
     CapacitorHttp: {
       enabled: true,
     },
+    StatusBar: {
+      style: "DARK",
+      backgroundColor: "#ffffff",
+      overlaysWebView: true,
+    },
+  },
+  android: {
+    webContentsDebuggingEnabled: true,
+    overrideUserAgent:
+      "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Mobile Safari/537.36 odot",
   },
 };
 

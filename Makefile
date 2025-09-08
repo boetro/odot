@@ -13,6 +13,9 @@ build:
 notify:
 	docker exec odot-notify-dev go run ./cmd/notify/main.go --start $(shell date -u -v-1M +"%Y-%m-%dT%H:%M:%SZ") --end $(shell date -u -v+30S +"%Y-%m-%dT%H:%M:%SZ")
 
+deploy:
+	./deploy.sh -t testing-$(shell head -c 10 /dev/urandom | base64 | tr -d '+/=' | tr 'A-Z' 'a-z' | head -c 5) -k ../k8s-configs --push
+
 # Run tests
 test:
 	go test ./...

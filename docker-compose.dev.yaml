@@ -59,12 +59,6 @@ services:
       - ~/.config/gcloud:/root/.config/gcloud:ro
     networks:
       - odot-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/health || exit 1"]
-      interval: 5s
-      timeout: 10s
-      start_period: 1s
-      retries: 3
     restart: on-failure
 
   # Frontend Dev Server (React/Vite)
@@ -73,12 +67,10 @@ services:
       context: .
       dockerfile: ./docker/Dockerfile.frontend
     container_name: odot-frontend-dev
-    depends_on:
-      api:
-        condition: service_healthy
     environment:
       - NODE_ENV=development
-      - VITE_API_URL=http://api:8080
+      - VITE_API_URL=http://localhost:8080
+      - DEV=true
     ports:
       - "5173:5173"
     volumes:
