@@ -156,7 +156,7 @@ function TodoBoardGroup({
               : group.key}
           </span>
         </div>
-        <div className="flex flex-col space-y-2 overflow-y-auto flex-1 px-2 pt-2">
+        <div className="flex flex-col space-y-2 overflow-y-auto flex-1 px-2 pt-2 max-h-[calc(100vh-180px)]">
           {group.todos.map((todo) => (
             <Card
               key={todo.id}
