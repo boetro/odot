@@ -116,7 +116,7 @@ export default function DateDropdown({
         }, 500); // 500ms debounce
       };
     })(),
-    [setSelectedDate]
+    [setSelectedDate],
   );
 
   const combinedDateTime = (() => {
@@ -126,28 +126,28 @@ export default function DateDropdown({
 
     if (variant === "large") {
       // For large variant, use more succinct format
-      dateStr = selectedDate.toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric'
+      dateStr = selectedDate.toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
       });
 
       if (selectedTime) {
         const [hours, minutes] = selectedTime.split(":").map(Number);
         const timeStr = new Date().setHours(hours, minutes, 0, 0);
-        const formattedTime = new Date(timeStr).toLocaleTimeString('en-US', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: false
+        const formattedTime = new Date(timeStr).toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: false,
         });
-        
+
         if (duration) {
           const durationMinutes = parseInt(duration);
           const endTime = new Date();
           endTime.setHours(hours, minutes + durationMinutes, 0, 0);
-          const formattedEndTime = endTime.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: false
+          const formattedEndTime = endTime.toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: false,
           });
           dateStr += `, ${formattedTime} - ${formattedEndTime}`;
         } else {
@@ -181,12 +181,16 @@ export default function DateDropdown({
   })();
 
   return (
-    <Popover open={open} onOpenChange={(newOpen) => {
-      setOpen(newOpen);
-      if (!newOpen && onClose) {
-        onClose();
-      }
-    }}>
+    <Popover
+      modal={true}
+      open={open}
+      onOpenChange={(newOpen) => {
+        setOpen(newOpen);
+        if (!newOpen && onClose) {
+          onClose();
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         {variant === "small" ? (
           <SmallButton

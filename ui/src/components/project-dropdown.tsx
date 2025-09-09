@@ -20,7 +20,7 @@ export default function ProjectDropdown({
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>
         {variant === "small" ? (
           <SmallButton>
@@ -38,7 +38,7 @@ export default function ProjectDropdown({
               selectedProject ? "" : "text-muted-foreground",
             )}
           >
-            <Box 
+            <Box
               className="size-4"
               style={{
                 color: selectedProject?.color || "inherit",
