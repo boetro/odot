@@ -12,6 +12,7 @@ import {
   Filter,
   Group,
   ListTodo,
+  Plus,
   SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "./ui/button";
@@ -270,6 +271,14 @@ function TodoBoard({
                   </Link>
                 </Card>
               ))}
+              {viewState.grouping === "project" && (
+                <Button
+                  variant="outline"
+                  className="text-sm rounded-sm border-0 ring-1 ring-border hover:cursor-pointer"
+                >
+                  <Plus /> New Todo
+                </Button>
+              )}
             </div>
           </div>
           {/* <Separator orientation="vertical" className="h-full" /> */}
@@ -622,6 +631,17 @@ export default function TodosView({
       >,
     );
 
+    if (viewState.grouping === "project") {
+      projects.map((proj) => {
+        if (!grouped[`__project_id:${proj.id}`]) {
+          grouped[`__project_id:${proj.id}`] = {
+            groupData: { project: proj },
+            todos: [],
+          };
+        }
+      });
+    }
+
     const result = Object.entries(grouped).map(
       ([key, { groupData, todos }]) => ({
         key,
@@ -631,7 +651,7 @@ export default function TodosView({
     );
     result.sort((a, b) => a.key.localeCompare(b.key));
     return result;
-  }, [sortedTodos, viewState.grouping]);
+  }, [sortedTodos, viewState.grouping, projects]);
 
   return (
     <div className="py-2 space-y-4 flex flex-col h-full w-full">

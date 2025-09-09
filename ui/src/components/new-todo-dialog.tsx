@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./ui/dialog";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Switch } from "./ui/switch";
 import type { Project } from "@/lib/types";
 import ProjectDropdown from "./project-dropdown";
@@ -97,8 +97,7 @@ export function NewTodoDialog({
       }
     },
   });
-
-  function createTodo() {
+  const createTodo = useCallback(() => {
     if (!pendingTodo.title) {
       setError("Title is required");
       return;
@@ -120,7 +119,7 @@ export function NewTodoDialog({
       ),
       project_id: pendingTodo.project?.id,
     });
-  }
+  }, [pendingTodo, mutation, setError]);
 
   function resetForm() {
     setPendingTodo({
