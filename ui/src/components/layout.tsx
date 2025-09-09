@@ -24,7 +24,7 @@ import { useCallback, useEffect, useState } from "react";
 import { pushNotificationService } from "../lib/push-notifications";
 import { Button } from "./ui/button";
 import { NewTodoDialog } from "./new-todo-dialog";
-import type { User } from "@/lib/types";
+import type { Project, User } from "@/lib/types";
 
 function InnerLayout({
   children,
@@ -127,7 +127,12 @@ function InnerLayout({
     todoQueries.getTodo(selectedTodoId),
   );
 
-  const selectedProject = (() => {
+  const [selectedProject, setSelectedProject] = useState<Project | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    let foundProject: Project | undefined;
     if (
       location.pathname.startsWith("/projects") &&
       projects !== undefined &&
@@ -137,16 +142,18 @@ function InnerLayout({
       if (projectId) {
         const numericProjectId = Number(projectId);
         if (!isNaN(numericProjectId)) {
-          return projects?.find((project) => project.id === numericProjectId);
+          foundProject = projects.find(
+            (project) => project.id === numericProjectId,
+          );
         }
       }
     } else if (selectedTodo && selectedTodo.project_id) {
-      return projects?.find(
+      foundProject = projects?.find(
         (project) => project.id === selectedTodo.project_id,
       );
     }
-    return null;
-  })();
+    setSelectedProject(foundProject);
+  }, [projects, projectsLoading, selectedTodo, location.pathname]);
 
   return (
     <SidebarProvider>

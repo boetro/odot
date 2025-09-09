@@ -19,6 +19,37 @@ export default function ProjectDropdown({
   variant?: "small" | "large";
 }) {
   const [open, setOpen] = useState(false);
+  if (projects.length === 0) {
+    if (variant === "small") {
+      return (
+        <SmallButton>
+          <Box
+            style={{
+              color: selectedProject?.color || "inherit",
+            }}
+          />
+          {selectedProject?.name || defaultText}
+        </SmallButton>
+      );
+    } else {
+      return (
+        <button
+          className={cn(
+            "flex flex-row gap-4 items-center hover:bg-muted rounded-md p-1",
+            selectedProject ? "" : "text-muted-foreground",
+          )}
+        >
+          <Box
+            className="size-4"
+            style={{
+              color: selectedProject?.color || "inherit",
+            }}
+          />
+          <span>{selectedProject?.name || "Assign to project"}</span>
+        </button>
+      );
+    }
+  }
   return (
     <Popover open={open} onOpenChange={setOpen} modal={true}>
       <PopoverTrigger asChild>

@@ -61,6 +61,7 @@ export function NewTodoDialog({
     durationMinutes: "",
     project: initialProject || undefined,
   });
+
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -197,6 +198,13 @@ export function NewTodoDialog({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [setOpen, open, createTodo]);
+
+  useEffect(() => {
+    setPendingTodo((prev) => ({
+      ...prev,
+      project: initialProject || undefined,
+    }));
+  }, [initialProject]);
 
   return (
     <Dialog

@@ -55,6 +55,7 @@ import {
   type TodoViewState,
 } from "@/hooks/todos-view-store";
 import { apiRequest } from "@/lib/api";
+import { NewTodoDialog } from "./new-todo-dialog";
 
 type TodoWithProject = Todo & {
   project?: Project;
@@ -88,6 +89,176 @@ function formatTime(startDate: Date, minutes: number) {
   return endDate.toLocaleTimeString();
 }
 
+function TodoBoardGroup({
+  group,
+  viewState,
+  animatingOut,
+}: {
+  group: {
+    key: string;
+    groupData:
+      | {
+          project: Project | null;
+        }
+      | undefined;
+    todos: TodoWithProject[];
+  };
+  viewState: TodoViewState;
+  animatingOut: Set<number>;
+}) {
+  const queryClient = useQueryClient();
+
+  const completeTodoMutation = useMutation({
+    mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
+      return apiRequest(`/api/todos/${todo.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          completed,
+          title: todo.title,
+          description: todo.description,
+          scheduled_date: todo.scheduled_date,
+          duration_minutes: todo.duration_minutes,
+          parent_todo_id: todo.parent_todo_id,
+          project_id: todo.project_id,
+        }),
+      });
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: listUserTodos });
+      queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
+      if (variables.todo.project_id)
+        queryClient.invalidateQueries({
+          queryKey: listProjectTodos(variables.todo.project_id),
+        });
+    },
+  });
+
+  const [openNewTodoDialog, setOpenNewTodoDialog] = useState(false);
+
+  return (
+    <React.Fragment key={group.key}>
+      <div className="w-60 h-full flex-shrink-0 flex flex-col">
+        <div className="flex flex-row gap-2 items-center pb-2 flex-shrink-0 ml-4">
+          {viewState.grouping === "project" && (
+            <Box
+              className="size-4"
+              style={{
+                color: group.groupData?.project?.color || "inherit",
+              }}
+            />
+          )}
+          <span>
+            {viewState.grouping === "project"
+              ? group.groupData?.project?.name || "no project"
+              : group.key}
+          </span>
+        </div>
+        <div className="flex flex-col space-y-2 overflow-y-auto flex-1 px-2 pt-2">
+          {group.todos.map((todo) => (
+            <Card
+              key={todo.id}
+              className={cn(
+                "rounded-sm border-0 ring-1 ring-border overflow-hidden p-0 flex-shrink-0 transition-all duration-300 ease-out",
+                animatingOut.has(todo.id)
+                  ? "opacity-0 translate-x-4 scale-95"
+                  : "opacity-100 translate-x-0 scale-100",
+              )}
+            >
+              <Link
+                to="/todos/$todoId"
+                params={{ todoId: todo.id.toString() }}
+                className="flex flex-col gap-2 hover:bg-muted p-2 hover:cursor-pointer w-full"
+              >
+                <div className="flex flex-row items-start gap-2">
+                  <div
+                    className="flex items-start pt-[2px]"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                  >
+                    <Checkbox
+                      checked={todo.completed}
+                      onCheckedChange={(checked) => {
+                        const isChecked = Boolean(checked);
+                        completeTodoMutation.mutate({
+                          todo: todo,
+                          completed: isChecked,
+                        });
+                      }}
+                    />
+                  </div>
+                  <div className="text-start text-sm font-medium flex-1">
+                    {todo.title}
+                  </div>
+                </div>
+                <div className="flex flex-row space-x-2 text-xs pl-6">
+                  {todo.project && (
+                    <span
+                      className="border rounded-sm p-0.5"
+                      style={{
+                        borderColor: todo.project.color,
+                      }}
+                    >
+                      {todo.project.name}
+                    </span>
+                  )}
+                  {todo.scheduled_date && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="border rounded-sm p-0.5">
+                          {truncateDate(todo.scheduled_date)}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {todo.scheduled_date.getHours() === 0 &&
+                        todo.scheduled_date.getMinutes() === 0 &&
+                        !todo.duration_minutes
+                          ? todo.scheduled_date.toLocaleDateString()
+                          : todo.scheduled_date.toLocaleTimeString()}
+                        {todo.duration_minutes && (
+                          <span className="ml-2">
+                            -{" "}
+                            {formatTime(
+                              todo.scheduled_date,
+                              todo.duration_minutes,
+                            )}
+                          </span>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </Link>
+            </Card>
+          ))}
+          {viewState.grouping === "project" && (
+            <>
+              <Button
+                variant="outline"
+                className="text-sm rounded-sm border-0 ring-1 ring-border hover:cursor-pointer"
+                onClick={() => setOpenNewTodoDialog(true)}
+              >
+                <Plus /> New Todo
+              </Button>
+              <NewTodoDialog
+                open={openNewTodoDialog}
+                setOpen={setOpenNewTodoDialog}
+                initialProject={group.groupData?.project}
+                projects={[]}
+              />
+            </>
+          )}
+        </div>
+      </div>
+      {/* <Separator orientation="vertical" className="h-full" /> */}
+    </React.Fragment>
+  );
+}
+
 function TodoBoard({
   groupedTodos,
   viewState,
@@ -106,7 +277,7 @@ function TodoBoard({
   viewState: TodoViewState;
 }) {
   // TODO: figure out a way to remove this duplication
-  const queryClient = useQueryClient();
+  // const queryClient = useQueryClient();
   const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
   const [displayTodos, setDisplayTodos] =
     useState<typeof groupedTodos>(groupedTodos);
@@ -144,145 +315,15 @@ function TodoBoard({
       setDisplayTodos(groupedTodos);
     }
   }, [groupedTodos, displayTodos]);
-
-  const completeTodoMutation = useMutation({
-    mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
-      return apiRequest(`/api/todos/${todo.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          completed,
-          title: todo.title,
-          description: todo.description,
-          scheduled_date: todo.scheduled_date,
-          duration_minutes: todo.duration_minutes,
-          parent_todo_id: todo.parent_todo_id,
-          project_id: todo.project_id,
-        }),
-      });
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: listUserTodos });
-      queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
-      if (variables.todo.project_id)
-        queryClient.invalidateQueries({
-          queryKey: listProjectTodos(variables.todo.project_id),
-        });
-    },
-  });
   return (
     <div className="flex flex-row px-2 overflow-auto h-full">
       {displayTodos?.map((group) => (
-        <React.Fragment key={group.key}>
-          <div className="w-60 h-full flex-shrink-0 flex flex-col">
-            <div className="flex flex-row gap-2 items-center pb-2 flex-shrink-0 ml-4">
-              {viewState.grouping === "project" && (
-                <Box
-                  className="size-4"
-                  style={{
-                    color: group.groupData?.project?.color || "inherit",
-                  }}
-                />
-              )}
-              <span>
-                {viewState.grouping === "project"
-                  ? group.groupData?.project?.name || "no project"
-                  : group.key}
-              </span>
-            </div>
-            <div className="flex flex-col space-y-2 overflow-y-auto flex-1 px-2 pt-2">
-              {group.todos.map((todo) => (
-                <Card
-                  key={todo.id}
-                  className={cn(
-                    "rounded-sm border-0 ring-1 ring-border overflow-hidden p-0 flex-shrink-0 transition-all duration-300 ease-out",
-                    animatingOut.has(todo.id)
-                      ? "opacity-0 translate-x-4 scale-95"
-                      : "opacity-100 translate-x-0 scale-100",
-                  )}
-                >
-                  <Link
-                    to="/todos/$todoId"
-                    params={{ todoId: todo.id.toString() }}
-                    className="flex flex-col gap-2 hover:bg-muted p-2 hover:cursor-pointer w-full"
-                  >
-                    <div className="flex flex-row items-start gap-2">
-                      <div
-                        className="flex items-start pt-[2px]"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                      >
-                        <Checkbox
-                          checked={todo.completed}
-                          onCheckedChange={(checked) => {
-                            const isChecked = Boolean(checked);
-                            completeTodoMutation.mutate({
-                              todo: todo,
-                              completed: isChecked,
-                            });
-                          }}
-                        />
-                      </div>
-                      <div className="text-start text-sm font-medium flex-1">
-                        {todo.title}
-                      </div>
-                    </div>
-                    <div className="flex flex-row space-x-2 text-xs pl-6">
-                      {todo.project && (
-                        <span
-                          className="border rounded-sm p-0.5"
-                          style={{
-                            borderColor: todo.project.color,
-                          }}
-                        >
-                          {todo.project.name}
-                        </span>
-                      )}
-                      {todo.scheduled_date && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="border rounded-sm p-0.5">
-                              {truncateDate(todo.scheduled_date)}
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {todo.scheduled_date.getHours() === 0 &&
-                            todo.scheduled_date.getMinutes() === 0 &&
-                            !todo.duration_minutes
-                              ? todo.scheduled_date.toLocaleDateString()
-                              : todo.scheduled_date.toLocaleTimeString()}
-                            {todo.duration_minutes && (
-                              <span className="ml-2">
-                                -{" "}
-                                {formatTime(
-                                  todo.scheduled_date,
-                                  todo.duration_minutes,
-                                )}
-                              </span>
-                            )}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </Link>
-                </Card>
-              ))}
-              {viewState.grouping === "project" && (
-                <Button
-                  variant="outline"
-                  className="text-sm rounded-sm border-0 ring-1 ring-border hover:cursor-pointer"
-                >
-                  <Plus /> New Todo
-                </Button>
-              )}
-            </div>
-          </div>
-          {/* <Separator orientation="vertical" className="h-full" /> */}
-        </React.Fragment>
+        <TodoBoardGroup
+          key={group.key}
+          group={group}
+          viewState={viewState}
+          animatingOut={animatingOut}
+        />
       ))}
     </div>
   );
