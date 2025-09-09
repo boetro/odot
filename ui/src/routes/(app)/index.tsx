@@ -29,6 +29,7 @@ function Index() {
             todos={todos || []}
             projects={projects || []}
             useTodoView={useTodoView}
+            showExtraProjects={true}
           />
         )}
       </div>

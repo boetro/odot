@@ -582,10 +582,12 @@ export default function TodosView({
   todos,
   projects,
   useTodoView,
+  showExtraProjects = false,
 }: {
   todos: Todo[];
   projects: Project[];
   useTodoView: () => TodoViewState;
+  showExtraProjects?: boolean;
 }) {
   const todosWithProjects = useMemo((): TodoWithProject[] => {
     return todos.map((todo) => ({
@@ -672,7 +674,7 @@ export default function TodosView({
       >,
     );
 
-    if (viewState.grouping === "project") {
+    if (viewState.grouping === "project" && showExtraProjects) {
       projects.map((proj) => {
         if (!grouped[`__project_id:${proj.id}`]) {
           grouped[`__project_id:${proj.id}`] = {
