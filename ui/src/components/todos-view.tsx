@@ -156,7 +156,7 @@ function TodoBoardGroup({
               : group.key}
           </span>
         </div>
-        <div className="flex flex-col space-y-2 overflow-y-auto flex-1 px-2 pt-2 max-h-[calc(100vh-180px)]">
+        <div className="flex flex-col space-y-2 overflow-y-auto px-2 pt-2 h-[calc(100vh-180px)]">
           {group.todos.map((todo) => (
             <Card
               key={todo.id}
@@ -181,7 +181,7 @@ function TodoBoardGroup({
                     }}
                   >
                     <Checkbox
-                      checked={todo.completed}
+                      checked={todo.completed || animatingOut.has(todo.id)}
                       onCheckedChange={(checked) => {
                         const isChecked = Boolean(checked);
                         completeTodoMutation.mutate({
