@@ -17,7 +17,7 @@ import {
   BreadcrumbSeparator,
 } from "./ui/breadcrumb";
 
-import { Box, Plus } from "lucide-react";
+import { Box, Home, Plus } from "lucide-react";
 import { todoQueries } from "@/lib/queries/todos";
 import { toast } from "sonner";
 import { useCallback, useEffect, useState } from "react";
@@ -164,10 +164,23 @@ function InnerLayout({
             <SidebarTrigger />
             <Breadcrumb>
               <BreadcrumbList>
-                {location.pathname === "/" && (
+                {location.pathname === "/" ? (
                   <BreadcrumbItem>
-                    <BreadcrumbPage>Home</BreadcrumbPage>
+                    <BreadcrumbPage>
+                      <Home className="size-4 dark:text-white text-black" />
+                    </BreadcrumbPage>
                   </BreadcrumbItem>
+                ) : (
+                  <>
+                    <BreadcrumbItem>
+                      <BreadcrumbLink asChild>
+                        <Link to="/">
+                          <Home className="size-4 dark:text-white text-black" />
+                        </Link>
+                      </BreadcrumbLink>
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator />
+                  </>
                 )}
                 {location.pathname.startsWith("/projects") &&
                   selectedProject && (
