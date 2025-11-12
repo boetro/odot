@@ -438,6 +438,54 @@ func (q *Queries) ListTodos(ctx context.Context, userID int32) ([]Todo, error) {
 	return items, nil
 }
 
+const listTodosByCompletion = `-- name: ListTodosByCompletion :many
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
+WHERE user_id = $1 AND is_completed = $2
+ORDER BY created_at DESC
+`
+
+type ListTodosByCompletionParams struct {
+	UserID      int32       `json:"userId"`
+	IsCompleted pgtype.Bool `json:"isCompleted"`
+}
+
+func (q *Queries) ListTodosByCompletion(ctx context.Context, arg ListTodosByCompletionParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, listTodosByCompletion, arg.UserID, arg.IsCompleted)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.TodoID,
+			&i.UserID,
+			&i.TemplateID,
+			&i.ProjectID,
+			&i.ParentTodoID,
+			&i.Title,
+			&i.Description,
+			&i.IsCompleted,
+			&i.ScheduledDate,
+			&i.DurationMin,
+			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listTodosByParent = `-- name: ListTodosByParent :many
 SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
 WHERE user_id = $1 AND parent_todo_id = $2
@@ -499,6 +547,55 @@ type ListTodosByProjectParams struct {
 
 func (q *Queries) ListTodosByProject(ctx context.Context, arg ListTodosByProjectParams) ([]Todo, error) {
 	rows, err := q.db.Query(ctx, listTodosByProject, arg.UserID, arg.ProjectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Todo{}
+	for rows.Next() {
+		var i Todo
+		if err := rows.Scan(
+			&i.TodoID,
+			&i.UserID,
+			&i.TemplateID,
+			&i.ProjectID,
+			&i.ParentTodoID,
+			&i.Title,
+			&i.Description,
+			&i.IsCompleted,
+			&i.ScheduledDate,
+			&i.DurationMin,
+			&i.Priority,
+			&i.IsModified,
+			&i.ModifiedFields,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CompletedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTodosByProjectAndCompletion = `-- name: ListTodosByProjectAndCompletion :many
+SELECT todo_id, user_id, template_id, project_id, parent_todo_id, title, description, is_completed, scheduled_date, duration_min, priority, is_modified, modified_fields, created_at, updated_at, completed_at FROM todos
+WHERE user_id = $1 AND project_id = $2 AND is_completed = $3
+ORDER BY created_at DESC
+`
+
+type ListTodosByProjectAndCompletionParams struct {
+	UserID      int32       `json:"userId"`
+	ProjectID   pgtype.Int4 `json:"projectId"`
+	IsCompleted pgtype.Bool `json:"isCompleted"`
+}
+
+func (q *Queries) ListTodosByProjectAndCompletion(ctx context.Context, arg ListTodosByProjectAndCompletionParams) ([]Todo, error) {
+	rows, err := q.db.Query(ctx, listTodosByProjectAndCompletion, arg.UserID, arg.ProjectID, arg.IsCompleted)
 	if err != nil {
 		return nil, err
 	}

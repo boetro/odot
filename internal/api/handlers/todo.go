@@ -281,11 +281,12 @@ func (h *TodoHandler) scheduleNotification(c context.Context, todo db.Todo) erro
 }
 
 // @Summary List user todos
-// @Description Retrieves all todos for the authenticated user, optionally filtered by project.
+// @Description Retrieves all todos for the authenticated user, optionally filtered by project and completion status.
 // @Tags todos
 // @Produce json
 // @Security BearerAuth
 // @Param project_id query int false "Filter by project ID"
+// @Param completed query boolean false "Filter by completion status (true for completed, false for incomplete)"
 // @Success 200 {array} TodoResponse
 // @Failure 400 {object} ErrorResponse
 // @Failure 401 {object} ErrorResponse
@@ -300,11 +301,44 @@ func (h *TodoHandler) ListUserTodos(c *gin.Context) {
 	}
 
 	projectID := c.Query("project_id")
+	completedStr := c.Query("completed")
 
 	var todos []db.Todo
 	var err error
 
-	if projectID != "" {
+	// Parse completed parameter if provided
+	var hasCompletedFilter bool
+	var completedFilter bool
+	if completedStr != "" {
+		completedFilter, err = strconv.ParseBool(completedStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid completed parameter, must be true or false"})
+			return
+		}
+		hasCompletedFilter = true
+	}
+
+	// Handle different combinations of filters
+	if projectID != "" && hasCompletedFilter {
+		// Both project and completion filters
+		projectIDInt, err := strconv.Atoi(projectID)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
+			return
+		}
+		todos, err = h.querier.ListTodosByProjectAndCompletion(c, db.ListTodosByProjectAndCompletionParams{
+			UserID: userId,
+			ProjectID: pgtype.Int4{
+				Int32: int32(projectIDInt),
+				Valid: true,
+			},
+			IsCompleted: pgtype.Bool{
+				Bool:  completedFilter,
+				Valid: true,
+			},
+		})
+	} else if projectID != "" {
+		// Only project filter
 		projectIDInt, err := strconv.Atoi(projectID)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid project ID"})
@@ -317,7 +351,17 @@ func (h *TodoHandler) ListUserTodos(c *gin.Context) {
 				Valid: true,
 			},
 		})
+	} else if hasCompletedFilter {
+		// Only completion filter
+		todos, err = h.querier.ListTodosByCompletion(c, db.ListTodosByCompletionParams{
+			UserID: userId,
+			IsCompleted: pgtype.Bool{
+				Bool:  completedFilter,
+				Valid: true,
+			},
+		})
 	} else {
+		// No filters
 		todos, err = h.querier.ListTodos(c, userId)
 	}
 

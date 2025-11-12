@@ -17,6 +17,16 @@ SELECT * FROM todos
 WHERE user_id = $1 AND project_id = $2
 ORDER BY created_at DESC;
 
+-- name: ListTodosByCompletion :many
+SELECT * FROM todos
+WHERE user_id = $1 AND is_completed = $2
+ORDER BY created_at DESC;
+
+-- name: ListTodosByProjectAndCompletion :many
+SELECT * FROM todos
+WHERE user_id = $1 AND project_id = $2 AND is_completed = $3
+ORDER BY created_at DESC;
+
 -- name: ListTodosByParent :many
 SELECT * FROM todos
 WHERE user_id = $1 AND parent_todo_id = $2

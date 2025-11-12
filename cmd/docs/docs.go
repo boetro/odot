@@ -615,7 +615,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Retrieves all todos for the authenticated user, optionally filtered by project.",
+                "description": "Retrieves all todos for the authenticated user, optionally filtered by project and completion status.",
                 "produces": [
                     "application/json"
                 ],
@@ -628,6 +628,12 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Filter by project ID",
                         "name": "project_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by completion status (true for completed, false for incomplete)",
+                        "name": "completed",
                         "in": "query"
                     }
                 ],

@@ -607,12 +607,16 @@ paths:
   /todos:
     get:
       description: Retrieves all todos for the authenticated user, optionally filtered
-        by project.
+        by project and completion status.
       parameters:
       - description: Filter by project ID
         in: query
         name: project_id
         type: integer
+      - description: Filter by completion status (true for completed, false for incomplete)
+        in: query
+        name: completed
+        type: boolean
       produces:
       - application/json
       responses:
