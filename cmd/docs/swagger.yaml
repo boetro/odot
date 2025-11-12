@@ -44,6 +44,9 @@ definitions:
         type: integer
       profile_picture_url:
         type: string
+      token_expires_at:
+        description: Unix timestamp in seconds
+        type: integer
     type: object
   handlers.HealthStatus:
     properties:
@@ -64,6 +67,11 @@ definitions:
       uptime:
         type: string
       version:
+        type: string
+    type: object
+  handlers.ImageToTextResponse:
+    properties:
+      text:
         type: string
     type: object
   handlers.MemStats:
@@ -173,6 +181,20 @@ definitions:
         type: string
       token_type:
         type: string
+    type: object
+  handlers.UpdateProjectRequest:
+    properties:
+      color:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      parent_project_id:
+        type: integer
+    required:
+    - color
+    - name
     type: object
   handlers.UpdateTodoRequest:
     properties:
@@ -323,6 +345,41 @@ paths:
       summary: Get application health status
       tags:
       - health
+  /image/text:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Upload an image and extract text using OCR
+      parameters:
+      - description: Image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ImageToTextResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Extract text from image
+      tags:
+      - image
   /me:
     get:
       description: Retrieves information for the authenticated user.
@@ -408,6 +465,55 @@ paths:
       security:
       - BearerAuth: []
       summary: Create a new project
+      tags:
+      - projects
+  /projects/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing project for the authenticated user.
+      parameters:
+      - description: Project ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Project details
+        in: body
+        name: project
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.UpdateProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/handlers.ProjectResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/handlers.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a project
       tags:
       - projects
   /push/send:

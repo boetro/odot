@@ -74,6 +74,24 @@ func generateRandomState() string {
 	return base64.URLEncoding.EncodeToString(b)
 }
 
+// Check if a redirect URI is localhost (for security - only include tokens for localhost)
+func isLocalhostRedirect(redirectURI string) bool {
+	if redirectURI == "" {
+		return false
+	}
+
+	parsedURL, err := url.Parse(redirectURI)
+	if err != nil {
+		return false
+	}
+
+	// Extract hostname without port
+	hostname := parsedURL.Hostname()
+
+	// Check if hostname is localhost or 127.0.0.1
+	return hostname == "localhost" || hostname == "127.0.0.1"
+}
+
 // Check if the request is from a mobile client (Capacitor)
 func (h *AuthHandler) isMobileClient(c *gin.Context) bool {
 	// First check for explicit mobile query parameter (most reliable)
@@ -95,10 +113,16 @@ func (h *AuthHandler) isMobileClient(c *gin.Context) bool {
 // @Success 307
 // @Router /auth/google/login [get]
 func (h *AuthHandler) GoogleLogin(c *gin.Context) {
-	state := generateRandomState() // Store this in session/cache
+	state := c.Query("state")
+	if state == "" {
+		state = generateRandomState()
+	}
 
 	// Check if request is from mobile client and store in cookie
 	isMobile := h.isMobileClient(c)
+
+	// Get optional redirect_uri parameter (for CLI clients)
+	redirectURI := c.Query("redirect_uri")
 
 	c.SetSameSite(http.SameSiteLaxMode)
 	c.SetCookie(
@@ -121,6 +145,19 @@ func (h *AuthHandler) GoogleLogin(c *gin.Context) {
 		true,                        // secure (true for HTTPS)
 		true,                        // httpOnly
 	)
+
+	// Store redirect_uri if provided (for CLI clients)
+	if redirectURI != "" {
+		c.SetCookie(
+			"oauth_redirect_uri", // name
+			redirectURI,          // value
+			600,                  // maxAge (10 minutes)
+			"/",                  // path
+			"",                   // domain (empty for current domain)
+			true,                 // secure (true for HTTPS)
+			true,                 // httpOnly
+		)
+	}
 
 	url := h.googleConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 	c.Redirect(http.StatusTemporaryRedirect, url)
@@ -246,8 +283,13 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 	mobileFlag, err := c.Cookie("oauth_mobile")
 	isMobileClient := err == nil && mobileFlag == "true"
 
-	// Clear the mobile client cookie
+	// Check for custom redirect_uri (for CLI clients)
+	customRedirectURI, err := c.Cookie("oauth_redirect_uri")
+	hasCustomRedirect := err == nil && customRedirectURI != ""
+
+	// Clear the cookies
 	c.SetCookie("oauth_mobile", "", -1, "/", "", true, true)
+	c.SetCookie("oauth_redirect_uri", "", -1, "/", "", true, true)
 
 	if isMobileClient {
 		h.logger.Info("Mobile client detected")
@@ -284,6 +326,28 @@ func (h *AuthHandler) GoogleCallback(c *gin.Context) {
 		h.logger.Info("Redirecting mobile client to deep link", deepLinkURL.String())
 
 		c.Redirect(http.StatusTemporaryRedirect, deepLinkURL.String())
+	} else if hasCustomRedirect && isLocalhostRedirect(customRedirectURI) {
+		h.logger.Info("CLI client detected with localhost redirect")
+		// For CLI clients with localhost redirect, include tokens in query params
+		redirectURL, err := url.Parse(customRedirectURI)
+		if err != nil {
+			h.logger.Error("Failed to parse custom redirect URI", err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Invalid redirect URI"})
+			return
+		}
+
+		query := redirectURL.Query()
+		query.Set("access_token", tokenPair.AccessToken)
+		query.Set("refresh_token", tokenPair.RefreshToken)
+		query.Set("state", state)
+		redirectURL.RawQuery = query.Encode()
+
+		h.logger.Info("Redirecting CLI client to localhost with tokens", redirectURL.String())
+		c.Redirect(http.StatusTemporaryRedirect, redirectURL.String())
+	} else if hasCustomRedirect {
+		// Custom redirect URI provided but not localhost - security risk, so ignore it
+		h.logger.Info("Custom redirect URI provided but not localhost, ignoring for security")
+		c.Redirect(http.StatusTemporaryRedirect, h.config.LoginSuccessRedirectURI)
 	} else {
 		h.logger.Info("Redirecting web client to frontend")
 		// Redirect to frontend for web clients
