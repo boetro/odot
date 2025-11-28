@@ -200,15 +200,17 @@ export default function DateDropdown({
             {combinedDateTime || "Date"}
           </SmallButton>
         ) : (
-          <button
+          <Button
+            variant="outline"
+            size="default"
             className={cn(
-              "flex flex-row gap-4 items-center hover:bg-muted rounded-md p-1",
+              "justify-start lg:bg-transparent lg:border-none lg:shadow-none lg:hover:bg-accent",
               combinedDateTime ? "" : "text-muted-foreground",
             )}
           >
             <CalendarIcon className="size-4" />
             <span>{combinedDateTime ? combinedDateTime : "Assign a date"}</span>
-          </button>
+          </Button>
         )}
       </PopoverTrigger>
       <PopoverContent

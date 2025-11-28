@@ -1,6 +1,7 @@
 import DateDropdown from "@/components/date-dropdown";
 import ProjectDropdown from "@/components/project-dropdown";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { getTodo, listProjectTodos, listUserTodos } from "@/lib/queries/keys";
 import { todoQueries } from "@/lib/queries/todos";
 import { projectQueries } from "@/lib/queries/projects";
@@ -60,7 +61,6 @@ function RouteComponent() {
 	const [tempDate, setTempDate] = useState<Date | undefined>(undefined);
 	const [tempTime, setTempTime] = useState<string | undefined>(undefined);
 	const [tempDuration, setTempDuration] = useState<string>("");
-	const [isEditingDescription, setIsEditingDescription] = useState(false);
 
 	useEffect(() => {
 		if (todo) {
@@ -91,12 +91,6 @@ function RouteComponent() {
 		}
 	}, [todo]);
 
-	function calculateTextareaRows(text: string): number {
-		if (!text) return 1;
-		const lines = text.split("\n").length;
-		return Math.max(1, lines); // Min 1 row, no max
-	}
-
 	function hasChanges(toSave: Todo | null) {
 		if (!todo || !toSave) return false;
 		return (
@@ -122,81 +116,32 @@ function RouteComponent() {
 		}
 	}
 
-	function handleDescriptionKeyDown(e: React.KeyboardEvent) {
-		if (e.key === "Enter" && e.metaKey) {
-			e.preventDefault();
-			handleSave(pendingTodo);
-			(e.target as HTMLTextAreaElement).blur();
-		}
-	}
-
 	return (
-		<div className="grid grid-cols-4 h-full">
+		<div className="h-full flex flex-col lg:grid lg:grid-cols-4 overflow-hidden">
 			{todoLoading || !todo || !pendingTodo ? (
 				"Loading..."
 			) : (
 				<>
-					<div className="w-full h-full py-8 px-12 col-span-3">
-						<div className="flex flex-col gap-8">
-							<input
-								className="outline-none text-2xl font-semibold"
-								type="text"
-								value={pendingTodo?.title || ""}
-								onChange={(e) =>
-									setPendingTodo(
-										pendingTodo
-											? {
-												...pendingTodo,
-												title: e.target.value,
-											}
-											: null,
-									)
-								}
-								onKeyDown={handleKeyDown}
-								onBlur={() => handleSave(pendingTodo)}
-							/>
-							<ProseMirrorEditor
-								className="outline-none resize-none text-sm"
-								initialMarkdown={pendingTodo?.description || ""}
-								placeholder="Add a description..."
-								setMarkdown={(md) => {
-									const newTodo = {
-										...pendingTodo,
-										description: md,
-									};
+					{/* Mobile: Details at top, Desktop: Sidebar on right */}
+					<div className="lg:order-2 lg:h-full lg:border-l lg:bg-muted/20 flex flex-row lg:flex-col gap-1.5 lg:gap-5 p-2 lg:p-3 text-sm border-b lg:border-b-0 overflow-x-auto overflow-y-visible shrink-0">
+						{/* Status Button - styled as button on mobile, traditional on desktop */}
+						<Button
+							variant="outline"
+							size="default"
+							onClick={() => {
+								if (pendingTodo) {
+									const newTodo = { ...pendingTodo, completed: !pendingTodo.completed };
 									setPendingTodo(newTodo);
 									handleSave(newTodo);
-								}}
-							/>
-						</div>
-					</div>
-					<div className="h-full border-l bg-muted/20 flex flex-col gap-5 p-3 text-sm">
-						<span className="text-muted-foreground p-1">Details</span>
-						<div className="flex flex-row gap-4 items-center p-1">
-							<Checkbox
-								checked={pendingTodo.completed}
-								onCheckedChange={(checked) => {
-									const isChecked = Boolean(checked);
-									if (pendingTodo) {
-										const newTodo = { ...pendingTodo, completed: isChecked };
-										setPendingTodo(newTodo);
-										handleSave(newTodo);
-									}
-								}}
-							/>
-							<span
-								className="cursor-pointer select-none"
-								onClick={() => {
-									if (pendingTodo) {
-										const newTodo = { ...pendingTodo, completed: !pendingTodo.completed };
-										setPendingTodo(newTodo);
-										handleSave(newTodo);
-									}
-								}}
-							>
+								}
+							}}
+						>
+							<Checkbox checked={pendingTodo.completed} />
+							<span className="whitespace-nowrap">
 								{pendingTodo.completed ? "Done" : "TODO"}
 							</span>
-						</div>
+						</Button>
+
 						<DateDropdown
 							selectedDate={tempDate}
 							setSelectedDate={setTempDate}
@@ -229,24 +174,58 @@ function RouteComponent() {
 							}}
 							variant="large"
 						/>
-						<div className="flex flex-col gap-2 text-sm">
-							<span className="text-muted-foreground">Project</span>
-							<ProjectDropdown
-								selectedProject={
-									projects.find((p) => p.id === pendingTodo.project_id) || null
+
+						<ProjectDropdown
+							selectedProject={
+								projects.find((p) => p.id === pendingTodo.project_id) || null
+							}
+							setSelectedProject={(project) => {
+								if (pendingTodo) {
+									const newTodo = {
+										...pendingTodo,
+										project_id: project?.id || null,
+									};
+									setPendingTodo(newTodo);
+									handleSave(newTodo);
 								}
-								setSelectedProject={(project) => {
-									if (pendingTodo) {
-										const newTodo = {
-											...pendingTodo,
-											project_id: project?.id || null,
-										};
-										setPendingTodo(newTodo);
-										handleSave(newTodo);
-									}
+							}}
+							projects={projects}
+							variant="large"
+						/>
+					</div>
+
+					{/* Mobile: Content below details, Desktop: Left side */}
+					<div className="lg:order-1 w-full h-full py-8 px-4 lg:px-12 lg:col-span-3">
+						<div className="flex flex-col gap-8">
+							<input
+								className="outline-none text-2xl font-semibold"
+								type="text"
+								value={pendingTodo?.title || ""}
+								onChange={(e) =>
+									setPendingTodo(
+										pendingTodo
+											? {
+												...pendingTodo,
+												title: e.target.value,
+											}
+											: null,
+									)
+								}
+								onKeyDown={handleKeyDown}
+								onBlur={() => handleSave(pendingTodo)}
+							/>
+							<ProseMirrorEditor
+								className="outline-none resize-none text-sm"
+								initialMarkdown={pendingTodo?.description || ""}
+								placeholder="Add a description..."
+								setMarkdown={(md) => {
+									const newTodo = {
+										...pendingTodo,
+										description: md,
+									};
+									setPendingTodo(newTodo);
+									handleSave(newTodo);
 								}}
-								projects={projects}
-								variant="large"
 							/>
 						</div>
 					</div>

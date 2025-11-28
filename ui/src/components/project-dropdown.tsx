@@ -1,5 +1,6 @@
 import { Box, Check } from "lucide-react";
 import { SmallButton } from "./small-button";
+import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import type { Project } from "@/lib/types";
 import { useState } from "react";
@@ -33,9 +34,11 @@ export default function ProjectDropdown({
       );
     } else {
       return (
-        <button
+        <Button
+          variant="outline"
+          size="default"
           className={cn(
-            "flex flex-row gap-4 items-center hover:bg-muted rounded-md p-1",
+            "justify-start lg:bg-transparent lg:border-none lg:shadow-none lg:hover:bg-accent",
             selectedProject ? "" : "text-muted-foreground",
           )}
         >
@@ -46,7 +49,7 @@ export default function ProjectDropdown({
             }}
           />
           <span className="truncate">{selectedProject?.name || "Assign to project"}</span>
-        </button>
+        </Button>
       );
     }
   }
@@ -63,9 +66,11 @@ export default function ProjectDropdown({
             <span className="truncate">{selectedProject?.name || defaultText}</span>
           </SmallButton>
         ) : (
-          <button
+          <Button
+            variant="outline"
+            size="default"
             className={cn(
-              "flex flex-row gap-4 items-center hover:bg-muted rounded-md p-1",
+              "justify-start lg:bg-transparent lg:border-none lg:shadow-none lg:hover:bg-accent",
               selectedProject ? "" : "text-muted-foreground",
             )}
           >
@@ -76,7 +81,7 @@ export default function ProjectDropdown({
               }}
             />
             <span className="truncate">{selectedProject?.name || "Assign to project"}</span>
-          </button>
+          </Button>
         )}
       </PopoverTrigger>
       <PopoverContent
