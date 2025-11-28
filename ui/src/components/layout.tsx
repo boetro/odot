@@ -131,6 +131,26 @@ function InnerLayout({
     undefined,
   );
 
+  // Build project hierarchy from root to current project
+  const getProjectHierarchy = (project: Project | undefined): Project[] => {
+    if (!project || !projects) return [];
+
+    const hierarchy: Project[] = [project];
+    let currentProject = project;
+
+    // Walk up the parent chain
+    while (currentProject.parent_project_id !== null) {
+      const parentProject = projects.find(
+        (p) => p.id === currentProject.parent_project_id,
+      );
+      if (!parentProject) break;
+      hierarchy.unshift(parentProject); // Add parent at the beginning
+      currentProject = parentProject;
+    }
+
+    return hierarchy;
+  };
+
   useEffect(() => {
     let foundProject: Project | undefined;
     if (
@@ -183,50 +203,82 @@ function InnerLayout({
                   </>
                 )}
                 {location.pathname.startsWith("/projects") &&
-                  selectedProject && (
-                    <BreadcrumbItem>
-                      <BreadcrumbPage className="flex gap-2 items-center">
-                        <Box
-                          className="size-4"
-                          style={{ color: selectedProject.color }}
-                        />
-                        {selectedProject.name}
-                      </BreadcrumbPage>
-                    </BreadcrumbItem>
-                  )}
-                {location.pathname.startsWith("/todos") &&
-                  selectedTodo &&
-                  !selectedTodoLoading && (
-                    <>
-                      {selectedProject && (
+                  selectedProject &&
+                  (() => {
+                    const hierarchy = getProjectHierarchy(selectedProject);
+                    return hierarchy.map((project, index) => {
+                      const isLast = index === hierarchy.length - 1;
+                      return (
                         <>
-                          <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                              <Link
-                                className="flex gap-2 items-center truncate"
-                                to="/projects/$projectId"
-                                params={{
-                                  projectId: selectedProject.id.toString(),
-                                }}
-                              >
+                          <BreadcrumbItem key={project.id}>
+                            {isLast ? (
+                              <BreadcrumbPage className="flex gap-2 items-center">
                                 <Box
                                   className="size-4"
-                                  style={{ color: selectedProject.color }}
+                                  style={{ color: project.color }}
                                 />
-                                {selectedProject.name}
-                              </Link>
-                            </BreadcrumbLink>
+                                {project.name}
+                              </BreadcrumbPage>
+                            ) : (
+                              <BreadcrumbLink asChild>
+                                <Link
+                                  className="flex gap-2 items-center truncate"
+                                  to="/projects/$projectId"
+                                  params={{
+                                    projectId: project.id.toString(),
+                                  }}
+                                >
+                                  <Box
+                                    className="size-4"
+                                    style={{ color: project.color }}
+                                  />
+                                  {project.name}
+                                </Link>
+                              </BreadcrumbLink>
+                            )}
                           </BreadcrumbItem>
-                          <BreadcrumbSeparator />
+                          {!isLast && <BreadcrumbSeparator key={`sep-${project.id}`} />}
                         </>
-                      )}
-                      <BreadcrumbItem>
-                        <BreadcrumbPage className="truncate">
-                          {selectedTodo.title}
-                        </BreadcrumbPage>
-                      </BreadcrumbItem>
-                    </>
-                  )}
+                      );
+                    });
+                  })()}
+                {location.pathname.startsWith("/todos") &&
+                  selectedTodo &&
+                  !selectedTodoLoading &&
+                  (() => {
+                    const hierarchy = getProjectHierarchy(selectedProject);
+                    return (
+                      <>
+                        {hierarchy.map((project) => (
+                          <>
+                            <BreadcrumbItem key={project.id}>
+                              <BreadcrumbLink asChild>
+                                <Link
+                                  className="flex gap-2 items-center truncate"
+                                  to="/projects/$projectId"
+                                  params={{
+                                    projectId: project.id.toString(),
+                                  }}
+                                >
+                                  <Box
+                                    className="size-4"
+                                    style={{ color: project.color }}
+                                  />
+                                  {project.name}
+                                </Link>
+                              </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator key={`sep-${project.id}`} />
+                          </>
+                        ))}
+                        <BreadcrumbItem>
+                          <BreadcrumbPage className="truncate">
+                            {selectedTodo.title}
+                          </BreadcrumbPage>
+                        </BreadcrumbItem>
+                      </>
+                    );
+                  })()}
               </BreadcrumbList>
             </Breadcrumb>
           </div>

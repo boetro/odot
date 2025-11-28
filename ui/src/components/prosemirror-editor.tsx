@@ -5,7 +5,7 @@ import { EditorState, TextSelection } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { Schema, DOMParser, DOMSerializer } from "prosemirror-model";
 import { schema } from "prosemirror-schema-basic";
-import { addListNodes } from "prosemirror-schema-list";
+import { addListNodes, sinkListItem, liftListItem } from "prosemirror-schema-list";
 import { exampleSetup } from "prosemirror-example-setup";
 import { keymap } from "prosemirror-keymap";
 import {
@@ -137,7 +137,38 @@ const mySchema = new Schema({
         return ["li", attrs, 0];
       },
     }),
-  marks: schema.spec.marks,
+  marks: schema.spec.marks.addToEnd("link", {
+    attrs: {
+      href: {},
+      title: { default: null },
+    },
+    inclusive: false,
+    parseDOM: [
+      {
+        tag: "a[href]",
+        getAttrs(dom: any) {
+          return {
+            href: dom.getAttribute("href"),
+            title: dom.getAttribute("title"),
+          };
+        },
+      },
+    ],
+    toDOM(node) {
+      const { href, title } = node.attrs;
+      return [
+        "a",
+        {
+          href,
+          title,
+          class: "text-blue-600 dark:text-blue-400 underline cursor-pointer",
+          target: "_blank",
+          rel: "noopener noreferrer",
+        },
+        0,
+      ];
+    },
+  }),
 });
 
 const createMarkdownInputRules = (schema: Schema) => {
@@ -407,8 +438,43 @@ const createMarkdownInputRules = (schema: Schema) => {
   return inputRules({ rules });
 };
 
-const createBackspaceKeymap = (schema: Schema) => {
+const createCustomKeymap = (schema: Schema) => {
   return keymap({
+    Tab: (state, dispatch) => {
+      // Check if we're in a list item - if so, increase indentation
+      const sinkCommand = sinkListItem(schema.nodes.list_item);
+      if (sinkCommand(state, dispatch)) {
+        return true;
+      }
+
+      // Otherwise, insert a tab character
+      if (dispatch) {
+        const tr = state.tr.insertText("\t");
+        dispatch(tr);
+      }
+      return true;
+    },
+    "Shift-Tab": (state, dispatch) => {
+      // Check if we're in a list item - if so, decrease indentation
+      const liftCommand = liftListItem(schema.nodes.list_item);
+      if (liftCommand(state, dispatch)) {
+        return true;
+      }
+
+      // Otherwise, try to remove a tab character if it exists
+      const { $from } = state.selection;
+      const textBefore = state.doc.textBetween($from.start(), $from.pos);
+
+      if (textBefore.endsWith("\t")) {
+        if (dispatch) {
+          const tr = state.tr.delete($from.pos - 1, $from.pos);
+          dispatch(tr);
+        }
+        return true;
+      }
+
+      return false;
+    },
     Backspace: (state, dispatch) => {
       const { $from, $to } = state.selection;
 
@@ -590,7 +656,7 @@ export function ProseMirrorEditor({
       const plugins = [
         createMarkdownInputRules(mySchema),
         ...exampleSetup({ schema: mySchema, menuBar: false }),
-        createBackspaceKeymap(mySchema),
+        createCustomKeymap(mySchema),
       ];
 
       // Create editor state
@@ -624,6 +690,7 @@ export function ProseMirrorEditor({
           }
         },
         handleClickOn(view, pos, node, nodePos, event) {
+          // Handle checkbox clicks
           if (
             node.type === mySchema.nodes.list_item &&
             node.attrs.checked !== null
@@ -657,12 +724,23 @@ export function ProseMirrorEditor({
               return true;
             }
           }
+
+          // Handle link clicks
+          const target = event.target as HTMLElement;
+          if (target.tagName === "A" && target.getAttribute("href")) {
+            const href = target.getAttribute("href");
+            if (href) {
+              window.open(href, "_blank", "noopener,noreferrer");
+              return true;
+            }
+          }
+
           return false;
         },
         attributes: {
           id: `prosemirror-editor`,
           class:
-            "prose prose-sm dark:prose-invert max-w-none focus:outline-none [&_li_p]:m-0 prose-li:m-0 prose-pre:bg-muted prose-p:m-0",
+            "prose prose-sm dark:prose-invert max-w-none focus:outline-none [&_li_p]:m-0 prose-li:m-0 prose-pre:bg-muted prose-p:m-0 [&_li_ul]:my-0 [&_li_ol]:my-0",
         },
         handleDOMEvents: {
           blur: () => {
