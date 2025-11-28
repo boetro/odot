@@ -1,15 +1,13 @@
 import DateDropdown from "@/components/date-dropdown";
 import ProjectDropdown from "@/components/project-dropdown";
 import { Checkbox } from "@/components/ui/checkbox";
-import { getTodo, listProjectTodos, listUserTodos } from "@/lib/queries/keys";
-import { todoQueries } from "@/lib/queries/todos";
+import { todoQueries, todoMutations } from "@/lib/queries/todos";
 import { projectQueries } from "@/lib/queries/projects";
 import type { Todo } from "@/lib/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProseMirrorEditor } from "@/components/prosemirror-editor";
-import { apiRequest } from "@/lib/api";
 import { SmallButton } from "@/components/small-button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -26,31 +24,7 @@ function RouteComponent() {
 	const params = Route.useParams();
 	const queryClient = useQueryClient();
 
-	const updateTodoMutation = useMutation({
-		mutationFn: ({ todo, oldProjectId }: { todo: Todo; oldProjectId?: number | null }) => {
-			return apiRequest(`/api/todos/${todo.id}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(todo),
-			});
-		},
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: listUserTodos });
-			queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
-			// Invalidate the new project query
-			if (variables.todo.project_id)
-				queryClient.invalidateQueries({
-					queryKey: listProjectTodos(variables.todo.project_id),
-				});
-			// Invalidate the old project query
-			if (variables.oldProjectId && variables.oldProjectId !== variables.todo.project_id)
-				queryClient.invalidateQueries({
-					queryKey: listProjectTodos(variables.oldProjectId),
-				});
-		},
-	});
+	const updateTodoMutation = useMutation(todoMutations.updateTodo(queryClient));
 
 	const { data: todo, isLoading: todoLoading } = useQuery(
 		todoQueries.getTodo(parseInt(params.todoId)),

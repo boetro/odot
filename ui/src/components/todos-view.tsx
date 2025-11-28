@@ -30,7 +30,6 @@ import {
 	DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { getTodo, listProjectTodos, listUserTodos } from "@/lib/queries/keys";
 import {
 	Select,
 	SelectContent,
@@ -54,8 +53,8 @@ import {
 	type Ordering,
 	type TodoViewState,
 } from "@/hooks/todos-view-store";
-import { apiRequest } from "@/lib/api";
 import { NewTodoDialog } from "./new-todo-dialog";
+import { todoMutations } from "@/lib/queries/todos";
 
 type TodoWithProject = Todo & {
 	project?: Project;
@@ -110,33 +109,7 @@ function TodoBoardGroup({
 }) {
 	const queryClient = useQueryClient();
 
-	const completeTodoMutation = useMutation({
-		mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
-			return apiRequest(`/api/todos/${todo.id}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					completed,
-					title: todo.title,
-					description: todo.description,
-					scheduled_date: todo.scheduled_date,
-					duration_minutes: todo.duration_minutes,
-					parent_todo_id: todo.parent_todo_id,
-					project_id: todo.project_id,
-				}),
-			});
-		},
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: listUserTodos });
-			queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
-			if (variables.todo.project_id)
-				queryClient.invalidateQueries({
-					queryKey: listProjectTodos(variables.todo.project_id),
-				});
-		},
-	});
+	const completeTodoMutation = useMutation(todoMutations.completeTodo(queryClient));
 
 	const [openNewTodoDialog, setOpenNewTodoDialog] = useState(false);
 
@@ -408,33 +381,7 @@ function TodoItem({
 }) {
 	const queryClient = useQueryClient();
 
-	const completeTodoMutation = useMutation({
-		mutationFn: ({ todo, completed }: { todo: Todo; completed: boolean }) => {
-			return apiRequest(`/api/todos/${todo.id}`, {
-				method: "PUT",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					completed,
-					title: todo.title,
-					description: todo.description,
-					scheduled_date: todo.scheduled_date,
-					duration_minutes: todo.duration_minutes,
-					parent_todo_id: todo.parent_todo_id,
-					project_id: todo.project_id,
-				}),
-			});
-		},
-		onSuccess: (_, variables) => {
-			queryClient.invalidateQueries({ queryKey: listUserTodos });
-			queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
-			if (variables.todo.project_id)
-				queryClient.invalidateQueries({
-					queryKey: listProjectTodos(variables.todo.project_id),
-				});
-		},
-	});
+	const completeTodoMutation = useMutation(todoMutations.completeTodo(queryClient));
 
 	return (
 		<div
