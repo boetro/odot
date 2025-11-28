@@ -28,7 +28,7 @@ export default function ProjectDropdown({
               color: selectedProject?.color || "inherit",
             }}
           />
-          {selectedProject?.name || defaultText}
+          <span className="truncate">{selectedProject?.name || defaultText}</span>
         </SmallButton>
       );
     } else {
@@ -45,7 +45,7 @@ export default function ProjectDropdown({
               color: selectedProject?.color || "inherit",
             }}
           />
-          <span>{selectedProject?.name || "Assign to project"}</span>
+          <span className="truncate">{selectedProject?.name || "Assign to project"}</span>
         </button>
       );
     }
@@ -60,7 +60,7 @@ export default function ProjectDropdown({
                 color: selectedProject?.color || "inherit",
               }}
             />
-            {selectedProject?.name || defaultText}
+            <span className="truncate">{selectedProject?.name || defaultText}</span>
           </SmallButton>
         ) : (
           <button
@@ -75,12 +75,12 @@ export default function ProjectDropdown({
                 color: selectedProject?.color || "inherit",
               }}
             />
-            <span>{selectedProject?.name || "Assign to project"}</span>
+            <span className="truncate">{selectedProject?.name || "Assign to project"}</span>
           </button>
         )}
       </PopoverTrigger>
       <PopoverContent
-        className="flex flex-col w-36 p-1 overflow-y-auto max-h-60"
+        className="flex flex-col min-w-36 max-w-64 p-1 overflow-y-auto max-h-60"
         align="start"
       >
         {projects.map((project) => (
@@ -96,11 +96,11 @@ export default function ProjectDropdown({
               setOpen(false);
             }}
           >
-            <span className="flex items-center gap-2">
-              <Box size={12} style={{ color: project.color }} />
-              {project.name}
+            <span className="flex items-center gap-2 flex-1 min-w-0">
+              <Box size={12} style={{ color: project.color }} className="flex-shrink-0" />
+              <span className="truncate">{project.name}</span>
             </span>
-            {project.id === selectedProject?.id && <Check size={16} />}
+            {project.id === selectedProject?.id && <Check size={16} className="flex-shrink-0" />}
           </button>
         ))}
       </PopoverContent>

@@ -180,10 +180,10 @@ function InnerLayout({
       <AppSidebar user={user} selectedProject={selectedProject} />
       <SidebarInset className="border h-full-w-full overflow-hidden">
         <div className="flex justify-between border-b">
-          <div className="pl-1 py-1 flex space-x-2 items-center">
-            <SidebarTrigger />
-            <Breadcrumb>
-              <BreadcrumbList>
+          <div className="pl-1 py-1 flex space-x-2 items-center overflow-x-auto flex-1 min-w-0">
+            <SidebarTrigger className="flex-shrink-0" />
+            <Breadcrumb className="flex-shrink-0">
+              <BreadcrumbList className="flex-nowrap">
                 {location.pathname === "/" ? (
                   <BreadcrumbItem>
                     <BreadcrumbPage>
@@ -214,25 +214,25 @@ function InnerLayout({
                             {isLast ? (
                               <BreadcrumbPage className="flex gap-2 items-center">
                                 <Box
-                                  className="size-4"
+                                  className="size-4 flex-shrink-0"
                                   style={{ color: project.color }}
                                 />
-                                {project.name}
+                                <span className="truncate max-w-[200px]">{project.name}</span>
                               </BreadcrumbPage>
                             ) : (
                               <BreadcrumbLink asChild>
                                 <Link
-                                  className="flex gap-2 items-center truncate"
+                                  className="flex gap-2 items-center"
                                   to="/projects/$projectId"
                                   params={{
                                     projectId: project.id.toString(),
                                   }}
                                 >
                                   <Box
-                                    className="size-4"
+                                    className="size-4 flex-shrink-0"
                                     style={{ color: project.color }}
                                   />
-                                  {project.name}
+                                  <span className="truncate max-w-[200px]">{project.name}</span>
                                 </Link>
                               </BreadcrumbLink>
                             )}
@@ -254,17 +254,17 @@ function InnerLayout({
                             <BreadcrumbItem key={project.id}>
                               <BreadcrumbLink asChild>
                                 <Link
-                                  className="flex gap-2 items-center truncate"
+                                  className="flex gap-2 items-center"
                                   to="/projects/$projectId"
                                   params={{
                                     projectId: project.id.toString(),
                                   }}
                                 >
                                   <Box
-                                    className="size-4"
+                                    className="size-4 flex-shrink-0"
                                     style={{ color: project.color }}
                                   />
-                                  {project.name}
+                                  <span className="truncate max-w-[200px]">{project.name}</span>
                                 </Link>
                               </BreadcrumbLink>
                             </BreadcrumbItem>
@@ -272,7 +272,7 @@ function InnerLayout({
                           </>
                         ))}
                         <BreadcrumbItem>
-                          <BreadcrumbPage className="truncate">
+                          <BreadcrumbPage className="truncate max-w-[200px]">
                             {selectedTodo.title}
                           </BreadcrumbPage>
                         </BreadcrumbItem>
