@@ -25,7 +25,8 @@ func NewImageHandler(visionService vision.VisionService, logger logger.Logger) *
 }
 
 type ImageToTextResponse struct {
-	Text string `json:"text"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
 
 // ImageToText extracts text from an uploaded image
@@ -73,12 +74,15 @@ func (h *ImageHandler) ImageToText(c *gin.Context) {
 
 	// Extract text using vision service
 	ctx := context.Background()
-	texts, err := h.visionService.ImageToText(ctx, imageData)
+	result, err := h.visionService.ImageToText(ctx, imageData)
 	if err != nil {
 		h.logger.Error("Failed to extract text from image", "error", err)
 		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: fmt.Sprintf("Failed to extract text: %v", err)})
 		return
 	}
 
-	c.JSON(http.StatusOK, ImageToTextResponse{Text: texts})
+	c.JSON(http.StatusOK, ImageToTextResponse{
+		Title:   result.Title,
+		Content: result.Content,
+	})
 }

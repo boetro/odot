@@ -1,7 +1,8 @@
 import { apiRequest } from "../api";
 
 export type ImageToTextResponse = {
-  text: string;
+  title: string;
+  content: string;
 };
 
 export const imageToTextKeys = ["imageToText"];

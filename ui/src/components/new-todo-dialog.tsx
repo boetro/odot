@@ -142,15 +142,22 @@ export function NewTodoDialog({
         setIsParsingImage(true);
         const response = await imageQueries.imageToText().queryFn(file);
 
-        // Append the extracted text to the existing description
-        if (response.text && response.text.length > 0) {
-          const extractedText = response.text;
+        // Set title and append content to description
+        if (response.title || response.content) {
+          const currentTitle = pendingTodo.title;
           const currentDescription = pendingTodo.description;
+
+          // Set title if not already set
+          const newTitle = currentTitle || response.title || "";
+
+          // Append content to description
           const newDescription = currentDescription
-            ? `${currentDescription}\n\n${extractedText}`
-            : extractedText;
+            ? `${currentDescription}\n\n${response.content}`
+            : response.content;
+
           setPendingTodo({
             ...pendingTodo,
+            title: newTitle,
             description: newDescription,
           });
         }
