@@ -1,5 +1,6 @@
 import {
 	Box,
+	ChevronDown,
 	ChevronRight,
 	CirclePlus,
 	Edit,
@@ -332,9 +333,10 @@ function ProjectTree({
 							<Button
 								size="icon"
 								variant="ghost"
+								onClick={(e) => e.stopPropagation()}
 								className={`dark:hover:bg-background/30 size-6 transition-opacity ${updateProjectOpen || dropdownOpen
 									? "opacity-100"
-									: "opacity-0 group-hover/item:opacity-100"
+									: "opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
 									}`}
 							>
 								<Ellipsis />
@@ -386,7 +388,7 @@ function ProjectTree({
 	return (
 		<SidebarMenuItem className="mx-0 px-0">
 			<Collapsible
-				className="group/collapsible [&[data-state=open]>button>svg:first-child]:rotate-90"
+				className="group/collapsible"
 				open={open}
 				onOpenChange={setOpen}
 			>
@@ -400,15 +402,16 @@ function ProjectTree({
 						className="group/item"
 					>
 						<span className="flex justify-between flex-row-reverse p-0 px-2">
-							<ChevronRight className="transition-transform" />
+							{open ? <ChevronDown /> : <ChevronRight />}
 							<DropdownMenu onOpenChange={setDropdownOpen}>
 								<DropdownMenuTrigger asChild>
 									<Button
 										size="icon"
 										variant="ghost"
+										onClick={(e) => e.stopPropagation()}
 										className={`dark:hover:bg-background/30 size-6 transition-opacity ${updateProjectOpen || dropdownOpen
 											? "opacity-100"
-											: "opacity-0 group-hover/item:opacity-100"
+											: "opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
 											}`}
 									>
 										<Ellipsis />
