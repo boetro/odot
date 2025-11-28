@@ -12,6 +12,7 @@ export type FilterState = {
   showCompleted: boolean;
   visibleProjectIds: Record<number, boolean> | null;
   showWithNoProject: boolean;
+  showChildProjectTodos: boolean;
 };
 
 export type TodoViewState = {
@@ -31,6 +32,7 @@ export type TodoViewState = {
   addVisibleProjectId: (projectId: number) => void;
   removeVisibleProjectId: (projectId: number) => void;
   setShowWithNoProject: (showWithNoProject: boolean) => void;
+  setShowChildProjectTodos: (showChildProjectTodos: boolean) => void;
 };
 
 export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
@@ -42,6 +44,7 @@ export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
           showCompleted: false,
           visibleProjectIds: null,
           showWithNoProject: true,
+          showChildProjectTodos: false,
         },
         grouping: null,
         ordering: "status",
@@ -96,6 +99,10 @@ export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
         setShowWithNoProject: (showWithNoProject: boolean) =>
           set((state) => ({
             filters: { ...state.filters, showWithNoProject },
+          })),
+        setShowChildProjectTodos: (showChildProjectTodos: boolean) =>
+          set((state) => ({
+            filters: { ...state.filters, showChildProjectTodos },
           })),
       }),
       {

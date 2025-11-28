@@ -8,9 +8,8 @@ import { createFileRoute } from "@tanstack/react-router";
 export const Route = createFileRoute("/(app)/projects/$projectId")({
   component: RouteComponent,
   beforeLoad: async ({ context, params }) => {
-    await context.queryClient.prefetchQuery(
-      todoQueries.listProjectTodos(parseInt(params.projectId)),
-    );
+    // Fetch all user todos so we can filter by current project and child projects
+    await context.queryClient.prefetchQuery(todoQueries.listUserTodos());
   },
 });
 
@@ -20,7 +19,7 @@ function RouteComponent() {
   const useTodoView = createTodoViewStore(`project-${projectId}-todo-view`);
 
   const { data: todos, isLoading: todosLoading } = useQuery(
-    todoQueries.listProjectTodos(parseInt(projectId)),
+    todoQueries.listUserTodos(),
   );
   // TODO: we don't need to list all projects just need to fetch
   // the current one
@@ -37,6 +36,7 @@ function RouteComponent() {
           todos={todos || []}
           projects={projects || []}
           useTodoView={useTodoView}
+          currentProjectId={parseInt(projectId)}
         />
       )}
     </div>
