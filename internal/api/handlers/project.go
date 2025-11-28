@@ -281,3 +281,52 @@ func (h *ProjectHandler) UpdateProject(c *gin.Context) {
 
 	return
 }
+
+// @Summary Delete a project
+// @Description Deletes an existing project for the authenticated user.
+// @Tags projects
+// @Security BearerAuth
+// @Param id path int true "Project ID"
+// @Success 204
+// @Failure 400 {object} ErrorResponse
+// @Failure 401 {object} ErrorResponse
+// @Failure 403 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /projects/{id} [delete]
+func (h *ProjectHandler) DeleteProject(c *gin.Context) {
+	userId, ok := middleware.GetUserID(c)
+
+	if !ok {
+		c.JSON(http.StatusUnauthorized, ErrorResponse{Error: "Unauthorized"})
+		return
+	}
+
+	projectIdStr := c.Param("id")
+	projectId, err := strconv.ParseInt(projectIdStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid project ID"})
+		return
+	}
+
+	existingProject, err := h.querier.GetProject(c, int32(projectId))
+	if err != nil {
+		c.JSON(http.StatusNotFound, ErrorResponse{Error: "Project not found"})
+		return
+	}
+
+	if existingProject.UserID != userId {
+		c.JSON(http.StatusForbidden, ErrorResponse{Error: "Forbidden"})
+		return
+	}
+
+	err = h.querier.DeleteProject(c, int32(projectId))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+
+	return
+}

@@ -17,3 +17,14 @@ export const projectQueries = {
     },
   }),
 };
+
+export const deleteProject = async (projectId: number): Promise<void> => {
+  const res = await apiRequest(`/api/projects/${projectId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to delete project");
+  }
+};

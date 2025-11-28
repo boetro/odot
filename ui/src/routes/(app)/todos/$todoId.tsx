@@ -184,7 +184,18 @@ function RouteComponent() {
 									}
 								}}
 							/>
-							<span>{pendingTodo.completed ? "Done" : "TODO"}</span>
+							<span
+								className="cursor-pointer select-none"
+								onClick={() => {
+									if (pendingTodo) {
+										const newTodo = { ...pendingTodo, completed: !pendingTodo.completed };
+										setPendingTodo(newTodo);
+										handleSave(newTodo);
+									}
+								}}
+							>
+								{pendingTodo.completed ? "Done" : "TODO"}
+							</span>
 						</div>
 						<DateDropdown
 							selectedDate={tempDate}

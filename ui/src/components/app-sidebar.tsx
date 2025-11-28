@@ -8,6 +8,7 @@ import {
 	LoaderCircle,
 	Plus,
 	SearchIcon,
+	Trash,
 } from "lucide-react";
 
 import {
@@ -30,8 +31,8 @@ import { NewTodoDialog } from "./new-todo-dialog";
 import { Link, useLocation } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { ProjectDialog } from "./project-dialog";
-import { projectQueries } from "@/lib/queries/projects";
-import { useQuery } from "@tanstack/react-query";
+import { projectQueries, deleteProject } from "@/lib/queries/projects";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -46,6 +47,16 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "./ui/alert-dialog";
 
 // Menu items.
 const items = [
@@ -250,9 +261,19 @@ function ProjectTree({
 	allProjects: Project[];
 }) {
 	const loc = useLocation();
+	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [updateProjectOpen, setUpdateProjectOpen] = useState(false);
 	const [dropdownOpen, setDropdownOpen] = useState(false);
+	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+	const deleteMutation = useMutation({
+		mutationFn: deleteProject,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: projectQueries.listProjects().queryKey });
+			setDeleteDialogOpen(false);
+		},
+	});
 
 	// Helper function to check if current project contains the active project in its hierarchy
 	const containsActiveProject = useCallback(
@@ -312,8 +333,8 @@ function ProjectTree({
 								size="icon"
 								variant="ghost"
 								className={`dark:hover:bg-background/30 size-6 transition-opacity ${updateProjectOpen || dropdownOpen
-										? "opacity-100"
-										: "opacity-0 group-hover/item:opacity-100"
+									? "opacity-100"
+									: "opacity-0 group-hover/item:opacity-100"
 									}`}
 							>
 								<Ellipsis />
@@ -324,10 +345,13 @@ function ProjectTree({
 								<Edit />
 								Edit
 							</DropdownMenuItem>
-							{/*<DropdownMenuItem variant="destructive">
-                     <Trash />
-                     Delete
-                   </DropdownMenuItem>*/}
+							<DropdownMenuItem
+								onClick={() => setDeleteDialogOpen(true)}
+								className="text-destructive focus:text-destructive"
+							>
+								<Trash />
+								Delete
+							</DropdownMenuItem>
 						</DropdownMenuContent>
 					</DropdownMenu>
 					<ProjectDialog
@@ -336,6 +360,24 @@ function ProjectTree({
 						setOpen={setUpdateProjectOpen}
 						initialProject={projectHierarchy.project}
 					/>
+					<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+						<AlertDialogContent>
+							<AlertDialogHeader>
+								<AlertDialogTitle>Delete Project</AlertDialogTitle>
+								<AlertDialogDescription>
+									Are you sure you want to delete "{projectHierarchy.project.name}"? This action cannot be undone.
+								</AlertDialogDescription>
+							</AlertDialogHeader>
+							<AlertDialogFooter>
+								<AlertDialogCancel>Cancel</AlertDialogCancel>
+								<AlertDialogAction
+									onClick={() => deleteMutation.mutate(projectHierarchy.project.id)}
+								>
+									Delete
+								</AlertDialogAction>
+							</AlertDialogFooter>
+						</AlertDialogContent>
+					</AlertDialog>
 				</span>
 			</SidebarMenuButton>
 		);
@@ -365,8 +407,8 @@ function ProjectTree({
 										size="icon"
 										variant="ghost"
 										className={`dark:hover:bg-background/30 size-6 transition-opacity ${updateProjectOpen || dropdownOpen
-												? "opacity-100"
-												: "opacity-0 group-hover/item:opacity-100"
+											? "opacity-100"
+											: "opacity-0 group-hover/item:opacity-100"
 											}`}
 									>
 										<Ellipsis />
@@ -377,10 +419,13 @@ function ProjectTree({
 										<Edit />
 										Edit
 									</DropdownMenuItem>
-									{/*<DropdownMenuItem variant="destructive">
-                    <Trash />
-                    Delete
-                  </DropdownMenuItem>*/}
+									<DropdownMenuItem
+										onClick={() => setDeleteDialogOpen(true)}
+										className="text-destructive focus:text-destructive"
+									>
+										<Trash />
+										Delete
+									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
 							<span className="flex justify-between items-center gap-2 w-full h-full">
@@ -417,6 +462,25 @@ function ProjectTree({
 				setOpen={setUpdateProjectOpen}
 				initialProject={projectHierarchy.project}
 			/>
+			<AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Delete Project</AlertDialogTitle>
+						<AlertDialogDescription>
+							Are you sure you want to delete "{projectHierarchy.project.name}"? This action cannot be undone.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={() => deleteMutation.mutate(projectHierarchy.project.id)}
+							className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+						>
+							Delete
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</SidebarMenuItem>
 	);
 }

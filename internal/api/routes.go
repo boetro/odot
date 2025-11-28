@@ -53,6 +53,7 @@ func RegisterRoutes(r *gin.Engine, database *pgxpool.Pool, querier db.Querier, c
 			protected.GET("/projects", projectHandler.ListProjects)
 			protected.POST("/projects", projectHandler.CreateProject)
 			protected.PUT("/projects/:id", projectHandler.UpdateProject)
+			protected.DELETE("/projects/:id", projectHandler.DeleteProject)
 		}
 		// TODO handler
 		{
