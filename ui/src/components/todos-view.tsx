@@ -93,6 +93,7 @@ function TodoBoardGroup({
 	group,
 	viewState,
 	animatingOut,
+	setAnimatingOut,
 }: {
 	group: {
 		key: string;
@@ -105,6 +106,7 @@ function TodoBoardGroup({
 	};
 	viewState: TodoViewState;
 	animatingOut: Set<number>;
+	setAnimatingOut: (fn: (prev: Set<number>) => Set<number>) => void;
 }) {
 	const queryClient = useQueryClient();
 
@@ -184,6 +186,18 @@ function TodoBoardGroup({
 											checked={todo.completed || animatingOut.has(todo.id)}
 											onCheckedChange={(checked) => {
 												const isChecked = Boolean(checked);
+												if (isChecked) {
+													// Add to animating set when completing
+													setAnimatingOut((prev) => new Set(prev).add(todo.id));
+													// Remove after animation
+													setTimeout(() => {
+														setAnimatingOut((prev) => {
+															const next = new Set(prev);
+															next.delete(todo.id);
+															return next;
+														});
+													}, 300);
+												}
 												completeTodoMutation.mutate({
 													todo: todo,
 													completed: isChecked,
@@ -276,53 +290,17 @@ function TodoBoard({
 	| null;
 	viewState: TodoViewState;
 }) {
-	// TODO: figure out a way to remove this duplication
-	// const queryClient = useQueryClient();
 	const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
-	const [displayTodos, setDisplayTodos] =
-		useState<typeof groupedTodos>(groupedTodos);
 
-	// Track todos that are disappearing and animate them out
-	React.useEffect(() => {
-		if (!displayTodos || !groupedTodos) {
-			setDisplayTodos(groupedTodos);
-			return;
-		}
-
-		// Find todos that were in displayTodos but are not in current groupedTodos
-		const currentTodoIds = new Set(
-			groupedTodos.flatMap((group) => group.todos.map((todo) => todo.id)),
-		);
-		const displayTodoIds = displayTodos.flatMap((group) =>
-			group.todos.map((todo) => todo.id),
-		);
-
-		const disappearingTodoIds = displayTodoIds.filter(
-			(id) => !currentTodoIds.has(id),
-		);
-
-		if (disappearingTodoIds.length > 0) {
-			// Start animation for disappearing todos
-			setAnimatingOut(new Set(disappearingTodoIds));
-
-			// After animation duration, update displayTodos to match current groupedTodos
-			setTimeout(() => {
-				setDisplayTodos(groupedTodos);
-				setAnimatingOut(new Set());
-			}, 300); // Animation duration
-		} else {
-			// No animations needed, update immediately
-			setDisplayTodos(groupedTodos);
-		}
-	}, [groupedTodos, displayTodos]);
 	return (
 		<div className="flex flex-row px-2 overflow-auto h-full">
-			{displayTodos?.map((group) => (
+			{groupedTodos?.map((group) => (
 				<TodoBoardGroup
 					key={group.key}
 					group={group}
 					viewState={viewState}
 					animatingOut={animatingOut}
+					setAnimatingOut={setAnimatingOut}
 				/>
 			))}
 		</div>
@@ -353,79 +331,20 @@ function TodoList({
 	viewState: TodoViewState;
 }) {
 	const [animatingOut, setAnimatingOut] = useState<Set<number>>(new Set());
-	const [displayGroupedTodos, setDisplayGroupedTodos] =
-		useState<typeof groupedTodos>(groupedTodos);
-	const [displaySortedTodos, setDisplaySortedTodos] =
-		useState<TodoWithProject[]>(sortedTodos);
 
-	// Track todos that are disappearing and animate them out
-	React.useEffect(() => {
-		if (groupedTodos === null) {
-			// Handle ungrouped todos
-			if (!displaySortedTodos || !sortedTodos) {
-				setDisplaySortedTodos(sortedTodos);
-				return;
-			}
-
-			const currentTodoIds = new Set(sortedTodos.map((todo) => todo.id));
-			const displayTodoIds = displaySortedTodos.map((todo) => todo.id);
-
-			const disappearingTodoIds = displayTodoIds.filter(
-				(id) => !currentTodoIds.has(id),
-			);
-
-			if (disappearingTodoIds.length > 0) {
-				setAnimatingOut(new Set(disappearingTodoIds));
-
-				setTimeout(() => {
-					setDisplaySortedTodos(sortedTodos);
-					setAnimatingOut(new Set());
-				}, 300);
-			} else {
-				setDisplaySortedTodos(sortedTodos);
-			}
-		} else {
-			// Handle grouped todos
-			if (!displayGroupedTodos || !groupedTodos) {
-				setDisplayGroupedTodos(groupedTodos);
-				return;
-			}
-
-			const currentTodoIds = new Set(
-				groupedTodos.flatMap((group) => group.todos.map((todo) => todo.id)),
-			);
-			const displayTodoIds = displayGroupedTodos.flatMap((group) =>
-				group.todos.map((todo) => todo.id),
-			);
-
-			const disappearingTodoIds = displayTodoIds.filter(
-				(id) => !currentTodoIds.has(id),
-			);
-
-			if (disappearingTodoIds.length > 0) {
-				setAnimatingOut(new Set(disappearingTodoIds));
-
-				setTimeout(() => {
-					setDisplayGroupedTodos(groupedTodos);
-					setAnimatingOut(new Set());
-				}, 300);
-			} else {
-				setDisplayGroupedTodos(groupedTodos);
-			}
-		}
-	}, [groupedTodos, sortedTodos, displayGroupedTodos, displaySortedTodos]);
 	return (
 		<div className="flex flex-col w-full h-full overflow-y-auto">
-			{displayGroupedTodos === null &&
-				displaySortedTodos.map((todo) => (
+			{groupedTodos === null &&
+				sortedTodos.map((todo) => (
 					<TodoItem
 						key={todo.id}
 						todo={todo}
 						isAnimatingOut={animatingOut.has(todo.id)}
+						setAnimatingOut={setAnimatingOut}
 					/>
 				))}
-			{displayGroupedTodos !== null &&
-				displayGroupedTodos.map((group) => (
+			{groupedTodos !== null &&
+				groupedTodos.map((group) => (
 					<Collapsible
 						key={group.key}
 						open={collapsedGroups.find((id) => id === group.key) === undefined}
@@ -468,6 +387,7 @@ function TodoList({
 									key={todo.id}
 									todo={todo}
 									isAnimatingOut={animatingOut.has(todo.id)}
+									setAnimatingOut={setAnimatingOut}
 								/>
 							))}
 						</CollapsibleContent>
@@ -480,9 +400,11 @@ function TodoList({
 function TodoItem({
 	todo,
 	isAnimatingOut = false,
+	setAnimatingOut,
 }: {
 	todo: TodoWithProject;
 	isAnimatingOut?: boolean;
+	setAnimatingOut: (fn: (prev: Set<number>) => Set<number>) => void;
 }) {
 	const queryClient = useQueryClient();
 
@@ -528,6 +450,18 @@ function TodoItem({
 				checked={todo.completed}
 				onCheckedChange={(checked) => {
 					const isChecked = Boolean(checked);
+					if (isChecked) {
+						// Add to animating set when completing
+						setAnimatingOut((prev) => new Set(prev).add(todo.id));
+						// Remove after animation
+						setTimeout(() => {
+							setAnimatingOut((prev) => {
+								const next = new Set(prev);
+								next.delete(todo.id);
+								return next;
+							});
+						}, 300);
+					}
 					completeTodoMutation.mutate({
 						todo: todo,
 						completed: isChecked,
@@ -726,6 +660,23 @@ export default function TodosView({
 			});
 		}
 
+		// Add child projects even if they have no todos when viewing child projects
+		if (
+			viewState.grouping === "project" &&
+			currentProjectId !== undefined &&
+			viewState.filters.showChildProjectTodos
+		) {
+			childProjectIds.forEach((childProjectId) => {
+				const childProject = projects.find((p) => p.id === childProjectId);
+				if (childProject && !grouped[`__project_id:${childProjectId}`]) {
+					grouped[`__project_id:${childProjectId}`] = {
+						groupData: { project: childProject },
+						todos: [],
+					};
+				}
+			});
+		}
+
 		const result = Object.entries(grouped).map(
 			([key, { groupData, todos }]) => ({
 				key,
@@ -735,7 +686,14 @@ export default function TodosView({
 		);
 		result.sort((a, b) => a.key.localeCompare(b.key));
 		return result;
-	}, [sortedTodos, viewState.grouping, projects]);
+	}, [
+		sortedTodos,
+		viewState.grouping,
+		viewState.filters.showChildProjectTodos,
+		projects,
+		currentProjectId,
+		childProjectIds,
+	]);
 
 	return (
 		<div className="py-2 space-y-4 flex flex-col h-full w-full">
