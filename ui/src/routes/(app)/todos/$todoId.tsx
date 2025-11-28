@@ -1,7 +1,6 @@
 import DateDropdown from "@/components/date-dropdown";
 import ProjectDropdown from "@/components/project-dropdown";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Button } from "@/components/ui/button";
 import { getTodo, listProjectTodos, listUserTodos } from "@/lib/queries/keys";
 import { todoQueries } from "@/lib/queries/todos";
 import { projectQueries } from "@/lib/queries/projects";
@@ -11,6 +10,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ProseMirrorEditor } from "@/components/prosemirror-editor";
 import { apiRequest } from "@/lib/api";
+import { SmallButton } from "@/components/small-button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/(app)/todos/$todoId")({
 	component: RouteComponent,
@@ -61,6 +62,7 @@ function RouteComponent() {
 	const [tempDate, setTempDate] = useState<Date | undefined>(undefined);
 	const [tempTime, setTempTime] = useState<string | undefined>(undefined);
 	const [tempDuration, setTempDuration] = useState<string>("");
+	const isMobile = useIsMobile();
 
 	useEffect(() => {
 		if (todo) {
@@ -123,11 +125,11 @@ function RouteComponent() {
 			) : (
 				<>
 					{/* Mobile: Details at top, Desktop: Sidebar on right */}
-					<div className="lg:order-2 lg:h-full lg:border-l lg:bg-muted/20 flex flex-row lg:flex-col gap-1.5 lg:gap-5 p-2 lg:p-3 text-sm border-b lg:border-b-0 overflow-x-auto overflow-y-visible shrink-0">
+					<div className="lg:order-2 lg:h-full lg:border-l lg:bg-muted/20 flex flex-row lg:flex-col gap-1.5 lg:gap-2 p-2 lg:p-3 text-sm border-b lg:border-b-0 overflow-x-auto overflow-y-visible shrink-0">
+						<span className="text-muted-foreground p-1 hidden lg:block">Details</span>
 						{/* Status Button - styled as button on mobile, traditional on desktop */}
-						<Button
-							variant="outline"
-							size="default"
+						<SmallButton
+							className="lg:hidden"
 							onClick={() => {
 								if (pendingTodo) {
 									const newTodo = { ...pendingTodo, completed: !pendingTodo.completed };
@@ -136,13 +138,38 @@ function RouteComponent() {
 								}
 							}}
 						>
-							<Checkbox checked={pendingTodo.completed} />
-							<span className="whitespace-nowrap">
-								{pendingTodo.completed ? "Done" : "TODO"}
-							</span>
-						</Button>
+							<>
+								<Checkbox checked={pendingTodo.completed} />
+								<span className="whitespace-nowrap">
+									{pendingTodo.completed ? "Done" : "TODO"}
+								</span>
+							</>
+						</SmallButton>
+						<div className="lg:flex flex-row gap-4 items-center p-1 hidden hover:bg-muted rounded-md">
+							<Checkbox
+								checked={pendingTodo.completed}
+								onCheckedChange={(checked) => {
+									const isChecked = Boolean(checked);
+									if (pendingTodo) {
+										const newTodo = { ...pendingTodo, completed: isChecked };
+										setPendingTodo(newTodo);
+										handleSave(newTodo);
+									}
+								}}
+							/>
+							<button
+								onClick={() => {
+									if (pendingTodo) {
+										const newTodo = { ...pendingTodo, completed: !pendingTodo.completed };
+										setPendingTodo(newTodo);
+										handleSave(newTodo);
+									}
+								}}
+							>{pendingTodo.completed ? "Done" : "TODO"}</button>
+						</div>
 
 						<DateDropdown
+							variant={isMobile ? "small" : "large"}
 							selectedDate={tempDate}
 							setSelectedDate={setTempDate}
 							selectedTime={tempTime}
@@ -172,7 +199,6 @@ function RouteComponent() {
 									handleSave(newTodo);
 								}
 							}}
-							variant="large"
 						/>
 
 						<ProjectDropdown
@@ -190,7 +216,7 @@ function RouteComponent() {
 								}
 							}}
 							projects={projects}
-							variant="large"
+							variant={isMobile ? "small" : "large"}
 						/>
 					</div>
 
