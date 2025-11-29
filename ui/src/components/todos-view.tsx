@@ -833,9 +833,18 @@ export default function TodosView({
 											<Checkbox
 												checked={viewState.filters.showWithNoTags}
 												className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
-												onCheckedChange={(checked) =>
-													viewState.setShowWithNoTags(Boolean(checked))
-												}
+												onCheckedChange={(checked) => {
+													const isChecked = Boolean(checked);
+													viewState.setShowWithNoTags(isChecked);
+													// When unchecking while all tags are visible, initialize with all tags
+													if (!isChecked && viewState.filters.visibleTagIds === null) {
+														const allTags = tags.reduce((acc, t) => {
+															acc[t.id] = true;
+															return acc;
+														}, {} as Record<number, boolean>);
+														viewState.setVisibleTagIds(allTags);
+													}
+												}}
 											/>
 											<span>(no tags)</span>
 										</DropdownMenuItem>
@@ -857,7 +866,18 @@ export default function TodosView({
 														if (isChecked) {
 															viewState.addVisibleTagId(tag.id);
 														} else {
-															viewState.removeVisibleTagId(tag.id);
+															// When unchecking while all tags are visible, initialize with all OTHER tags
+															if (viewState.filters.visibleTagIds === null) {
+																const allTagsExceptThis = tags.reduce((acc, t) => {
+																	if (t.id !== tag.id) {
+																		acc[t.id] = true;
+																	}
+																	return acc;
+																}, {} as Record<number, boolean>);
+																viewState.setVisibleTagIds(allTagsExceptThis);
+															} else {
+																viewState.removeVisibleTagId(tag.id);
+															}
 														}
 													}}
 												/>

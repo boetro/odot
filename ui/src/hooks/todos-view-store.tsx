@@ -37,6 +37,7 @@ export type TodoViewState = {
   setShowChildProjectTodos: (showChildProjectTodos: boolean) => void;
   addVisibleTagId: (tagId: number) => void;
   removeVisibleTagId: (tagId: number) => void;
+  setVisibleTagIds: (visibleTagIds: Record<number, boolean> | null) => void;
   setShowWithNoTags: (showWithNoTags: boolean) => void;
 };
 
@@ -134,6 +135,10 @@ export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
               },
             };
           }),
+        setVisibleTagIds: (visibleTagIds: Record<number, boolean> | null) =>
+          set((state) => ({
+            filters: { ...state.filters, visibleTagIds },
+          })),
         setShowWithNoTags: (showWithNoTags: boolean) =>
           set((state) => ({
             filters: { ...state.filters, showWithNoTags },
