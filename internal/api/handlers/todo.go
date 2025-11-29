@@ -33,6 +33,7 @@ type CreateTodoRequest struct {
 	DurationMin   *int32     `json:"duration_minutes"`
 	ParentTodoID  *int32     `json:"parent_todo_id"`
 	ProjectID     *int32     `json:"project_id"`
+	TagIDs        []int32    `json:"tag_ids"`
 }
 
 type UpdateTodoRequest struct {
@@ -43,24 +44,32 @@ type UpdateTodoRequest struct {
 	DurationMin   *int32     `json:"duration_minutes"`
 	ParentTodoID  *int32     `json:"parent_todo_id"`
 	ProjectID     *int32     `json:"project_id"`
+	TagIDs        []int32    `json:"tag_ids"`
 }
 
 type TodoResponse struct {
-	ID            int64      `json:"id"`
-	Title         string     `json:"title"`
-	Description   *string    `json:"description"`
-	ScheduledDate *time.Time `json:"scheduled_date"`
-	DurationMin   *int32     `json:"duration_minutes"`
-	ParentTodoID  *int32     `json:"parent_todo_id"`
-	ProjectID     *int32     `json:"project_id"`
-	Completed     bool       `json:"completed"`
+	ID            int64          `json:"id"`
+	Title         string         `json:"title"`
+	Description   *string        `json:"description"`
+	ScheduledDate *time.Time     `json:"scheduled_date"`
+	DurationMin   *int32         `json:"duration_minutes"`
+	ParentTodoID  *int32         `json:"parent_todo_id"`
+	ProjectID     *int32         `json:"project_id"`
+	Completed     bool           `json:"completed"`
+	Tags          []*TagResponse `json:"tags"`
 }
 
-func NewTodoResponse(todo *db.Todo) *TodoResponse {
+func NewTodoResponse(todo *db.Todo, tags []db.Tag) *TodoResponse {
+	tagResponses := make([]*TagResponse, len(tags))
+	for i, tag := range tags {
+		tagResponses[i] = NewTagResponse(&tag)
+	}
+
 	return &TodoResponse{
 		ID:        int64(todo.TodoID),
 		Title:     todo.Title,
 		Completed: todo.IsCompleted.Bool,
+		Tags:      tagResponses,
 		Description: func() *string {
 			if todo.Description.Valid {
 				return &todo.Description.String
@@ -216,7 +225,41 @@ func (h *TodoHandler) CreateTodo(c *gin.Context) {
 		return
 	}
 
-	response := NewTodoResponse(&todo)
+	// Handle tag associations
+	for _, tagID := range req.TagIDs {
+		// Verify tag exists and belongs to user
+		tag, err := h.querier.GetTag(c, tagID)
+		if err != nil {
+			h.logger.Error("Failed to get tag", err)
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid tag ID"})
+			return
+		}
+		if tag.UserID != userId {
+			c.JSON(http.StatusForbidden, ErrorResponse{Error: "Tag does not belong to user"})
+			return
+		}
+
+		// Create todo-tag association
+		err = h.querier.CreateTodoTag(c, db.CreateTodoTagParams{
+			TodoID: todo.TodoID,
+			TagID:  tagID,
+		})
+		if err != nil {
+			h.logger.Error("Failed to create todo-tag association", err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
+			return
+		}
+	}
+
+	// Fetch tags for response
+	tags, err := h.querier.ListTodoTagsByTodo(c, todo.TodoID)
+	if err != nil {
+		h.logger.Error("Failed to fetch todo tags", err)
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
+		return
+	}
+
+	response := NewTodoResponse(&todo, tags)
 
 	err = h.scheduleNotification(c, todo)
 	if err != nil {
@@ -373,7 +416,13 @@ func (h *TodoHandler) ListUserTodos(c *gin.Context) {
 	responses := make([]*TodoResponse, len(todos))
 
 	for i, todo := range todos {
-		responses[i] = NewTodoResponse(&todo)
+		// Fetch tags for each todo
+		tags, err := h.querier.ListTodoTagsByTodo(c, todo.TodoID)
+		if err != nil {
+			h.logger.Error("Failed to fetch todo tags", err)
+			tags = []db.Tag{} // Continue with empty tags on error
+		}
+		responses[i] = NewTodoResponse(&todo, tags)
 	}
 
 	c.JSON(http.StatusOK, responses)
@@ -543,6 +592,40 @@ func (h *TodoHandler) UpdateTodo(c *gin.Context) {
 		return
 	}
 
+	// Handle tag updates - delete all existing tags first
+	err = h.querier.DeleteAllTodoTags(c, todoId)
+	if err != nil {
+		h.logger.Error("Failed to delete existing todo tags", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Internal Server Error"})
+		return
+	}
+
+	// Add new tag associations
+	for _, tagID := range req.TagIDs {
+		// Verify tag exists and belongs to user
+		tag, err := h.querier.GetTag(c, tagID)
+		if err != nil {
+			h.logger.Error("Failed to get tag", err)
+			c.JSON(http.StatusBadRequest, ErrorResponse{Error: "Invalid tag ID"})
+			return
+		}
+		if tag.UserID != userId {
+			c.JSON(http.StatusForbidden, ErrorResponse{Error: "Tag does not belong to user"})
+			return
+		}
+
+		// Create todo-tag association
+		err = h.querier.CreateTodoTag(c, db.CreateTodoTagParams{
+			TodoID: todoId,
+			TagID:  tagID,
+		})
+		if err != nil {
+			h.logger.Error("Failed to create todo-tag association", err)
+			c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "Internal Server Error"})
+			return
+		}
+	}
+
 	err = h.scheduleNotification(c, dbTodo)
 
 	if err != nil {
@@ -600,6 +683,13 @@ func (h *TodoHandler) GetTodo(c *gin.Context) {
 		return
 	}
 
-	response := NewTodoResponse(&todo)
+	// Fetch tags for this todo
+	tags, err := h.querier.ListTodoTagsByTodo(c, todoId)
+	if err != nil {
+		h.logger.Error("Failed to fetch todo tags", err)
+		tags = []db.Tag{} // Continue with empty tags on error
+	}
+
+	response := NewTodoResponse(&todo, tags)
 	c.JSON(http.StatusOK, response)
 }

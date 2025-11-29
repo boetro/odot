@@ -3,7 +3,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 export type Ordering = "title" | "scheduledDate" | "status";
-export type Grouping = "project" | "status" | null;
+export type Grouping = "project" | "status" | "tag" | null;
 export type SortDirection = "asc" | "desc";
 export type View = "list" | "board" | "calendar";
 
@@ -13,6 +13,8 @@ export type FilterState = {
   visibleProjectIds: Record<number, boolean> | null;
   showWithNoProject: boolean;
   showChildProjectTodos: boolean;
+  visibleTagIds: Record<number, boolean> | null;
+  showWithNoTags: boolean;
 };
 
 export type TodoViewState = {
@@ -33,6 +35,9 @@ export type TodoViewState = {
   removeVisibleProjectId: (projectId: number) => void;
   setShowWithNoProject: (showWithNoProject: boolean) => void;
   setShowChildProjectTodos: (showChildProjectTodos: boolean) => void;
+  addVisibleTagId: (tagId: number) => void;
+  removeVisibleTagId: (tagId: number) => void;
+  setShowWithNoTags: (showWithNoTags: boolean) => void;
 };
 
 export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
@@ -45,6 +50,8 @@ export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
           visibleProjectIds: null,
           showWithNoProject: true,
           showChildProjectTodos: false,
+          visibleTagIds: null,
+          showWithNoTags: true,
         },
         grouping: null,
         ordering: "status",
@@ -103,6 +110,33 @@ export const createTodoViewStore = (storageId: string = "todo-view-storage") =>
         setShowChildProjectTodos: (showChildProjectTodos: boolean) =>
           set((state) => ({
             filters: { ...state.filters, showChildProjectTodos },
+          })),
+        addVisibleTagId: (tagId: number) =>
+          set((state) => ({
+            filters: {
+              ...state.filters,
+              visibleTagIds: {
+                ...(state.filters.visibleTagIds || {}),
+                [tagId]: true,
+              },
+            },
+          })),
+        removeVisibleTagId: (tagId: number) =>
+          set((state) => {
+            const newVisibleTagIds = {
+              ...(state.filters.visibleTagIds || {}),
+            };
+            delete newVisibleTagIds[tagId];
+            return {
+              filters: {
+                ...state.filters,
+                visibleTagIds: newVisibleTagIds,
+              },
+            };
+          }),
+        setShowWithNoTags: (showWithNoTags: boolean) =>
+          set((state) => ({
+            filters: { ...state.filters, showWithNoTags },
           })),
       }),
       {

@@ -1,4 +1,4 @@
-import type { Project, Todo } from "@/lib/types";
+import type { Project, Tag, Todo } from "@/lib/types";
 import { Checkbox } from "./ui/checkbox";
 import {
 	ArrowDownIcon,
@@ -29,7 +29,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
 	Select,
 	SelectContent,
@@ -55,6 +55,8 @@ import {
 } from "@/hooks/todos-view-store";
 import { NewTodoDialog } from "./new-todo-dialog";
 import { todoMutations } from "@/lib/queries/todos";
+import { tagQueries } from "@/lib/queries/tags";
+import { TagBadge } from "./tag-badge";
 
 type TodoWithProject = Todo & {
 	project?: Project;
@@ -99,6 +101,7 @@ function TodoBoardGroup({
 		groupData:
 		| {
 			project: Project | null;
+			tag: Tag | null;
 		}
 		| undefined;
 		todos: TodoWithProject[];
@@ -119,17 +122,25 @@ function TodoBoardGroup({
 				<div className="flex flex-row gap-2 items-center pb-2 flex-shrink-0 ml-4">
 					{viewState.grouping === "project" && (
 						<Box
-							className="size-4"
+							className="size-4 flex-shrink-0"
 							style={{
 								color: group.groupData?.project?.color || "inherit",
 							}}
 						/>
 					)}
-					<span>
-						{viewState.grouping === "project"
-							? group.groupData?.project?.name || "no project"
-							: group.key}
-					</span>
+					{viewState.grouping === "tag" ? (
+						group.groupData?.tag ? (
+							<TagBadge tag={group.groupData.tag} size="sm" />
+						) : (
+							<span className="text-muted-foreground">(no tags)</span>
+						)
+					) : (
+						<span className="truncate">
+							{viewState.grouping === "project"
+								? group.groupData?.project?.name || "no project"
+								: group.key}
+						</span>
+					)}
 				</div>
 				<div className="flex flex-col space-y-2 overflow-y-auto px-2 pt-2 h-[calc(100vh-180px)]">
 					{group.todos.map((todo) => (
@@ -193,6 +204,9 @@ function TodoBoardGroup({
 											{todo.project.name}
 										</span>
 									)}
+									{todo.tags?.map((tag) => (
+										<TagBadge key={tag.id} tag={tag} size="sm" />
+									))}
 									{todo.scheduled_date && (
 										<Tooltip>
 											<TooltipTrigger asChild>
@@ -347,11 +361,19 @@ function TodoList({
 										}}
 									/>
 								)}
-								<span>
-									{viewState?.grouping === "project"
-										? group.groupData?.project?.name || "No Project"
-										: group.key}
-								</span>
+								{viewState.grouping === "tag" ? (
+									group.groupData?.tag ? (
+										<TagBadge tag={group.groupData.tag} size="sm" />
+									) : (
+										<span className="text-muted-foreground">(no tags)</span>
+									)
+								) : (
+									<span>
+										{viewState?.grouping === "project"
+											? group.groupData?.project?.name || "No Project"
+											: group.key}
+									</span>
+								)}
 							</div>
 						</CollapsibleTrigger>
 						<CollapsibleContent>
@@ -453,6 +475,9 @@ function TodoItem({
 							</TooltipContent>
 						</Tooltip>
 					)}
+					{todo.tags?.map((tag) => (
+						<TagBadge key={tag.id} tag={tag} size="sm" />
+					))}
 				</div>
 			</Link>
 		</div>
@@ -482,6 +507,7 @@ export default function TodosView({
 	}, [todos, projects]);
 
 	const viewState = useTodoView();
+	const { data: tags = [] } = useQuery(tagQueries.listTags());
 
 	const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
 
@@ -534,6 +560,22 @@ export default function TodosView({
 					return false;
 			}
 
+			// Filter by tags (OR logic - show if todo has ANY selected tag)
+			if (viewState.filters.visibleTagIds !== null) {
+				const hasNoTags = !todo.tags || todo.tags.length === 0;
+
+				if (hasNoTags && !viewState.filters.showWithNoTags) {
+					return false;
+				}
+
+				if (!hasNoTags && todo.tags) {
+					const hasVisibleTag = todo.tags.some(
+						(tag) => viewState.filters.visibleTagIds![tag.id],
+					);
+					if (!hasVisibleTag) return false;
+				}
+			}
+
 			return true;
 		});
 	}, [
@@ -567,8 +609,37 @@ export default function TodosView({
 
 		const grouped = sortedTodos.reduce(
 			(acc, todo) => {
+				if (viewState.grouping === "tag") {
+					// Tag grouping: todos can appear in multiple groups
+					if (!todo.tags || todo.tags.length === 0) {
+						const key = "__zno_tags";
+						if (!acc[key]) {
+							acc[key] = {
+								groupData: { type: "tag", tag: null },
+								todos: [],
+							};
+						}
+						acc[key].todos.push(todo);
+					} else {
+						todo.tags.forEach((tag) => {
+							const key = `__tag_id:${tag.id}`;
+							if (!acc[key]) {
+								acc[key] = {
+									groupData: { type: "tag", tag },
+									todos: [],
+								};
+							}
+							acc[key].todos.push(todo);
+						});
+					}
+					return acc;
+				}
+
 				let key: string;
-				let groupData: { type: "project"; project: Project | null } | undefined;
+				let groupData:
+					| { type: "project"; project: Project | null }
+					| { type: "tag"; tag: any }
+					| undefined;
 
 				if (viewState.grouping === "project") {
 					const project = todo.project || null;
@@ -590,7 +661,7 @@ export default function TodosView({
 			{} as Record<
 				string,
 				{
-					groupData: { project: Project | null } | undefined;
+					groupData: any;
 					todos: TodoWithProject[];
 				}
 			>,
@@ -748,6 +819,54 @@ export default function TodosView({
 									</DropdownMenuSubContent>
 								</DropdownMenuPortal>
 							</DropdownMenuSub>
+							<DropdownMenuSub>
+								<DropdownMenuSubTrigger className="text-xs">
+									Tags
+								</DropdownMenuSubTrigger>
+								<DropdownMenuPortal>
+									<DropdownMenuSubContent>
+										<DropdownMenuItem
+											onSelect={(e) => e.preventDefault()}
+											onClick={(e) => e.stopPropagation()}
+											className="flex items-center space-x-1 text-xs"
+										>
+											<Checkbox
+												checked={viewState.filters.showWithNoTags}
+												className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
+												onCheckedChange={(checked) =>
+													viewState.setShowWithNoTags(Boolean(checked))
+												}
+											/>
+											<span>(no tags)</span>
+										</DropdownMenuItem>
+										{tags.map((tag) => (
+											<DropdownMenuItem
+												key={tag.id}
+												onSelect={(e) => e.preventDefault()}
+												onClick={(e) => e.stopPropagation()}
+												className="flex items-center space-x-1 text-xs"
+											>
+												<Checkbox
+													checked={
+														viewState.filters.visibleTagIds === null ||
+														viewState.filters.visibleTagIds[tag.id]
+													}
+													className="data-[state=checked]:border-slate-600 data-[state=checked]:bg-slate-600 data-[state=checked]:text-white dark:data-[state=checked]:border-slate-700 dark:data-[state=checked]:bg-slate-700"
+													onCheckedChange={(checked) => {
+														const isChecked = Boolean(checked);
+														if (isChecked) {
+															viewState.addVisibleTagId(tag.id);
+														} else {
+															viewState.removeVisibleTagId(tag.id);
+														}
+													}}
+												/>
+												<TagBadge tag={tag} size="sm" />
+											</DropdownMenuItem>
+										))}
+									</DropdownMenuSubContent>
+								</DropdownMenuPortal>
+							</DropdownMenuSub>
 						</DropdownMenuGroup>
 					</DropdownMenuContent>
 				</DropdownMenu>
@@ -834,6 +953,9 @@ export default function TodosView({
 											)}
 											<SelectItem className="text-xs" value="project">
 												Project
+											</SelectItem>
+											<SelectItem className="text-xs" value="tag">
+												Tag
 											</SelectItem>
 											<SelectItem className="text-xs" value="status">
 												Status

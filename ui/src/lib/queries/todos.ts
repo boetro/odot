@@ -74,7 +74,7 @@ export const todoQueries = {
 
 export const todoMutations = {
 	updateTodo: (queryClient: QueryClient) => ({
-		mutationFn: ({ todo }: { todo: Todo }) => {
+		mutationFn: ({ todo }: { todo: Todo & { tag_ids?: number[] } }) => {
 			return apiRequest(`/api/todos/${todo.id}`, {
 				method: "PUT",
 				headers: {
@@ -83,7 +83,7 @@ export const todoMutations = {
 				body: JSON.stringify(todo),
 			});
 		},
-		onSuccess: (_: unknown, variables: { todo: Todo; oldProjectId?: number | null }) => {
+		onSuccess: (_: unknown, variables: { todo: Todo & { tag_ids?: number[] }; oldProjectId?: number | null }) => {
 			queryClient.invalidateQueries({ queryKey: listUserTodos });
 			queryClient.invalidateQueries({ queryKey: getTodo(variables.todo.id) });
 			// Invalidate the new project query
@@ -113,6 +113,7 @@ export const todoMutations = {
 					duration_minutes: todo.duration_minutes,
 					parent_todo_id: todo.parent_todo_id,
 					project_id: todo.project_id,
+					tag_ids: todo.tags?.map(t => t.id) || [],
 				}),
 			});
 		},

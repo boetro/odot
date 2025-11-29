@@ -3,6 +3,7 @@ import ProjectDropdown from "@/components/project-dropdown";
 import { Checkbox } from "@/components/ui/checkbox";
 import { todoQueries, todoMutations } from "@/lib/queries/todos";
 import { projectQueries } from "@/lib/queries/projects";
+import { tagQueries } from "@/lib/queries/tags";
 import type { Todo } from "@/lib/types";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
@@ -10,6 +11,8 @@ import { useEffect, useState } from "react";
 import { ProseMirrorEditor } from "@/components/prosemirror-editor";
 import { SmallButton } from "@/components/small-button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { TagSelector } from "@/components/tag-selector";
+import { TagBadge } from "@/components/tag-badge";
 
 export const Route = createFileRoute("/(app)/todos/$todoId")({
 	component: RouteComponent,
@@ -31,8 +34,9 @@ function RouteComponent() {
 	);
 
 	const { data: projects = [] } = useQuery(projectQueries.listProjects());
+	const { data: tags = [] } = useQuery(tagQueries.listTags());
 
-	const [pendingTodo, setPendingTodo] = useState<Todo | null>(null);
+	const [pendingTodo, setPendingTodo] = useState<Todo & { tagIds?: number[] } | null>(null);
 	const [tempDate, setTempDate] = useState<Date | undefined>(undefined);
 	const [tempTime, setTempTime] = useState<string | undefined>(undefined);
 	const [tempDuration, setTempDuration] = useState<string>("");
@@ -40,7 +44,10 @@ function RouteComponent() {
 
 	useEffect(() => {
 		if (todo) {
-			setPendingTodo(todo);
+			setPendingTodo({
+				...todo,
+				tagIds: todo.tags?.map(t => t.id) || [],
+			});
 			// Initialize temp values
 			setTempDate(
 				todo.scheduled_date ? new Date(todo.scheduled_date) : undefined,
@@ -67,21 +74,34 @@ function RouteComponent() {
 		}
 	}, [todo]);
 
-	function hasChanges(toSave: Todo | null) {
+	function hasChanges(toSave: (Todo & { tagIds?: number[] }) | null) {
 		if (!todo || !toSave) return false;
+
+		// Check tag changes
+		const currentTagIds = (todo.tags?.map(t => t.id) || []).sort();
+		const newTagIds = (toSave.tagIds || []).sort();
+		const tagsChanged = JSON.stringify(currentTagIds) !== JSON.stringify(newTagIds);
+
 		return (
 			todo.title !== toSave.title ||
 			todo.description !== toSave.description ||
 			todo.completed !== toSave.completed ||
 			todo.scheduled_date !== toSave.scheduled_date ||
 			todo.duration_minutes !== toSave.duration_minutes ||
-			todo.project_id !== toSave.project_id
+			todo.project_id !== toSave.project_id ||
+			tagsChanged
 		);
 	}
 
-	function handleSave(toSave: Todo | null) {
+	function handleSave(toSave: (Todo & { tagIds?: number[] }) | null) {
 		if (toSave && hasChanges(toSave)) {
-			updateTodoMutation.mutate({ todo: toSave, oldProjectId: todo?.project_id });
+			updateTodoMutation.mutate({
+				todo: {
+					...toSave,
+					tag_ids: toSave.tagIds,
+				},
+				oldProjectId: todo?.project_id
+			});
 		}
 	}
 
@@ -192,6 +212,27 @@ function RouteComponent() {
 							projects={projects}
 							variant={isMobile ? "small" : "large"}
 						/>
+
+						<TagSelector
+							tags={tags}
+							selectedTagIds={pendingTodo.tagIds || []}
+							onTagsChange={(tagIds) => {
+								if (pendingTodo) {
+									const newTodo = { ...pendingTodo, tagIds };
+									setPendingTodo(newTodo);
+									handleSave(newTodo);
+								}
+							}}
+							variant={isMobile ? "small" : "large"}
+						/>
+
+						{pendingTodo.tags && pendingTodo.tags.length > 0 && (
+							<div className="flex flex-wrap gap-1 p-1">
+								{pendingTodo.tags.map(tag => (
+									<TagBadge key={tag.id} tag={tag} size="sm" />
+								))}
+							</div>
+						)}
 					</div>
 
 					{/* Mobile: Content below details, Desktop: Left side */}

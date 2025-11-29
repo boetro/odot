@@ -15,6 +15,12 @@ export type Project = {
   parent_project_id: number | null;
 };
 
+export type Tag = {
+  id: number;
+  name: string;
+  color: string;
+};
+
 export type Todo = {
   id: number;
   title: string;
@@ -24,6 +30,7 @@ export type Todo = {
   parent_todo_id: number | null;
   project_id: number | null;
   completed: boolean;
+  tags?: Tag[];
 };
 
 export interface CalendarProps {

@@ -11,13 +11,15 @@ import { Switch } from "./ui/switch";
 import type { Project } from "@/lib/types";
 import ProjectDropdown from "./project-dropdown";
 import DateDropdown from "./date-dropdown";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listProjectTodos, listUserTodos } from "@/lib/queries/keys";
 import { imageQueries } from "@/lib/queries/images";
+import { tagQueries } from "@/lib/queries/tags";
 import { ProseMirrorEditor } from "./prosemirror-editor";
 import { ScanEye, Loader2 } from "lucide-react";
 import { SmallButton } from "./small-button";
 import { apiRequest } from "@/lib/api";
+import { TagSelector } from "./tag-selector";
 
 function combineDate(date: Date | undefined, timeStr: string | undefined) {
   if (!date) return undefined;
@@ -55,14 +57,17 @@ export function NewTodoDialog({
     scheduledDate?: Date;
     scheduledTime?: string;
     durationMinutes: string;
+    tagIds: number[];
   }>({
     title: "",
     description: "",
     durationMinutes: "",
     project: initialProject || undefined,
+    tagIds: [],
   });
 
   const queryClient = useQueryClient();
+  const { data: tags = [] } = useQuery(tagQueries.listTags());
 
   const mutation = useMutation({
     mutationFn: (newTodo: {
@@ -72,6 +77,7 @@ export function NewTodoDialog({
       project_id?: number;
       duration_minutes?: number;
       parent_todo_id?: string;
+      tag_ids?: number[];
     }) => {
       console.log("Sending todo request: ", newTodo);
       return apiRequest("/api/todos", {
@@ -119,6 +125,7 @@ export function NewTodoDialog({
         pendingTodo.scheduledTime,
       ),
       project_id: pendingTodo.project?.id,
+      tag_ids: pendingTodo.tagIds,
     });
   }, [pendingTodo, mutation, setError]);
 
@@ -128,6 +135,7 @@ export function NewTodoDialog({
       description: "",
       durationMinutes: "",
       project: initialProject || undefined,
+      tagIds: [],
     });
   }
 
@@ -290,6 +298,16 @@ export function NewTodoDialog({
                 });
               }}
             />
+            <TagSelector
+              tags={tags}
+              selectedTagIds={pendingTodo.tagIds}
+              onTagsChange={(tagIds) => {
+                setPendingTodo({
+                  ...pendingTodo,
+                  tagIds,
+                });
+              }}
+            />
             <SmallButton
               onClick={handleImageToTextClick}
               disabled={isParsingImage}
@@ -308,14 +326,6 @@ export function NewTodoDialog({
               accept="image/*"
               style={{ display: "none" }}
             />
-            {/* <SmallButton>
-              <CircleAlert />
-              Priority
-            </SmallButton>
-            <SmallButton>
-              <Tags />
-              Tags
-            </SmallButton> */}
           </div>
           {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
